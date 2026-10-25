@@ -2,6 +2,8 @@
 package com.danielchavarri.taskflow.task.infrastructure.persistence;
 
 import com.danielchavarri.taskflow.task.domain.model.Task;
+import com.danielchavarri.taskflow.task.domain.model.TaskPriority;
+import com.danielchavarri.taskflow.task.domain.model.TaskStatus;
 import com.danielchavarri.taskflow.task.domain.port.TaskRepository;
 import org.springframework.stereotype.Repository;
 
@@ -53,5 +55,35 @@ public class TaskRepositoryAdapter implements TaskRepository {
     @Override
     public void deleteById(UUID id) {
         springDataRepository.deleteById(id);
+    }
+
+    @Override
+    public List<Task> findByFilters(
+            TaskStatus status,
+            TaskPriority priority) {
+
+        if (status != null && priority != null) {
+            return springDataRepository
+                    .findByStatusAndPriority(status, priority)
+                    .stream()
+                    .map(mapper::toDomain)
+                    .toList();
+        }
+
+        if (status != null) {
+            return springDataRepository.findByStatus(status)
+                    .stream()
+                    .map(mapper::toDomain)
+                    .toList();
+        }
+
+        if (priority != null) {
+            return springDataRepository.findByPriority(priority)
+                    .stream()
+                    .map(mapper::toDomain)
+                    .toList();
+        }
+
+        return findAll();
     }
 }

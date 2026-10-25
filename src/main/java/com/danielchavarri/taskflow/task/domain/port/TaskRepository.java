@@ -2,6 +2,8 @@
 package com.danielchavarri.taskflow.task.domain.port;
 
 import com.danielchavarri.taskflow.task.domain.model.Task;
+import com.danielchavarri.taskflow.task.domain.model.TaskPriority;
+import com.danielchavarri.taskflow.task.domain.model.TaskStatus;
 
 import java.util.List;
 import java.util.Optional;
@@ -18,4 +20,8 @@ public interface TaskRepository {
     List<Task> findByProjectId(UUID projectId);
 
     void deleteById(UUID id);
+
+    List<Task> findByFilters(
+        TaskStatus status,
+        TaskPriority priority);
 }

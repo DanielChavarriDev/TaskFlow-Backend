@@ -20,6 +20,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import com.danielchavarri.taskflow.project.domain.model.Project;
 import static org.mockito.ArgumentMatchers.anyString;
+import com.danielchavarri.taskflow.shared.infrastructure.security.JwtService;
 import static org.mockito.Mockito.verify;
 import org.springframework.dao.DataIntegrityViolationException;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -32,287 +33,290 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import(GlobalExceptionHandler.class)
 class ProjectControllerValidationTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+        @Autowired
+        private MockMvc mockMvc;
 
-    @MockitoBean
-    private CreateProjectUseCase createProjectUseCase;
+        @MockitoBean
+        private JwtService jwtService;
 
-    @MockitoBean
-    private GetAllProjectsUseCase getAllProjectsUseCase;
+        @MockitoBean
+        private CreateProjectUseCase createProjectUseCase;
 
-    @MockitoBean
-    private GetProjectByIdUseCase getProjectByIdUseCase;
+        @MockitoBean
+        private GetAllProjectsUseCase getAllProjectsUseCase;
 
-    @MockitoBean
-    private UpdateProjectUseCase updateProjectUseCase;
+        @MockitoBean
+        private GetProjectByIdUseCase getProjectByIdUseCase;
 
-    @MockitoBean
-    private DeleteProjectUseCase deleteProjectUseCase;
+        @MockitoBean
+        private UpdateProjectUseCase updateProjectUseCase;
 
-    @Test
-    void shouldReturn400WhenProjectNameIsBlank() throws Exception {
-        String requestBody = """
-                {
-                    "name": "",
-                    "description": "Proyecto de prueba"
-                }
-                """;
+        @MockitoBean
+        private DeleteProjectUseCase deleteProjectUseCase;
 
-        mockMvc.perform(post("/api/projects")
-                .contentType("application/json")
-                .content(requestBody))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(400))
-                .andExpect(jsonPath("$.title").value("Validation failed"))
-                .andExpect(jsonPath("$.errors.name")
-                        .value("El nombre es obligatorio"));
+        @Test
+        void shouldReturn400WhenProjectNameIsBlank() throws Exception {
+                String requestBody = """
+                                {
+                                    "name": "",
+                                    "description": "Proyecto de prueba"
+                                }
+                                """;
 
-        verifyNoInteractions(createProjectUseCase);
-    }
+                mockMvc.perform(post("/api/projects")
+                                .contentType("application/json")
+                                .content(requestBody))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.status").value(400))
+                                .andExpect(jsonPath("$.title").value("Validation failed"))
+                                .andExpect(jsonPath("$.errors.name")
+                                                .value("El nombre es obligatorio"));
 
-    @Test
-    void shouldReturn400WhenProjectNameExceeds100Characters()
-            throws Exception {
-        String longName = "A".repeat(101);
+                verifyNoInteractions(createProjectUseCase);
+        }
 
-        String requestBody = """
-                {
-                    "name": "%s",
-                    "description": "Proyecto de prueba"
-                }
-                """.formatted(longName);
+        @Test
+        void shouldReturn400WhenProjectNameExceeds100Characters()
+                        throws Exception {
+                String longName = "A".repeat(101);
 
-        mockMvc.perform(post("/api/projects")
-                .contentType("application/json")
-                .content(requestBody))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(400))
-                .andExpect(jsonPath("$.title").value("Validation failed"))
-                .andExpect(jsonPath("$.errors.name")
-                        .value("Máximo 100 caracteres"));
+                String requestBody = """
+                                {
+                                    "name": "%s",
+                                    "description": "Proyecto de prueba"
+                                }
+                                """.formatted(longName);
 
-        verifyNoInteractions(createProjectUseCase);
-    }
+                mockMvc.perform(post("/api/projects")
+                                .contentType("application/json")
+                                .content(requestBody))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.status").value(400))
+                                .andExpect(jsonPath("$.title").value("Validation failed"))
+                                .andExpect(jsonPath("$.errors.name")
+                                                .value("Máximo 100 caracteres"));
 
-    @Test
-    void shouldReturn400WhenDescriptionExceeds500Characters()
-            throws Exception {
-        String longDescription = "A".repeat(501);
+                verifyNoInteractions(createProjectUseCase);
+        }
 
-        String requestBody = """
-                {
-                    "name": "Proyecto de prueba",
-                    "description": "%s"
-                }
-                """.formatted(longDescription);
+        @Test
+        void shouldReturn400WhenDescriptionExceeds500Characters()
+                        throws Exception {
+                String longDescription = "A".repeat(501);
 
-        mockMvc.perform(post("/api/projects")
-                .contentType("application/json")
-                .content(requestBody))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(400))
-                .andExpect(jsonPath("$.title").value("Validation failed"))
-                .andExpect(jsonPath("$.errors.description")
-                        .value("Máximo 500 caracteres"));
+                String requestBody = """
+                                {
+                                    "name": "Proyecto de prueba",
+                                    "description": "%s"
+                                }
+                                """.formatted(longDescription);
 
-        verifyNoInteractions(createProjectUseCase);
-    }
+                mockMvc.perform(post("/api/projects")
+                                .contentType("application/json")
+                                .content(requestBody))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.status").value(400))
+                                .andExpect(jsonPath("$.title").value("Validation failed"))
+                                .andExpect(jsonPath("$.errors.description")
+                                                .value("Máximo 500 caracteres"));
 
-    @Test
-    void shouldReturn400WhenRequestBodyContainsMalformedJson() throws Exception {
-        String malformedJson = """
-                {
-                    "name": "Proyecto de prueba",
-                    "description":
-                }
-                """;
+                verifyNoInteractions(createProjectUseCase);
+        }
 
-        mockMvc.perform(post("/api/projects")
-                .contentType("application/json")
-                .content(malformedJson))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(400))
-                .andExpect(jsonPath("$.title").value("Malformed request"));
+        @Test
+        void shouldReturn400WhenRequestBodyContainsMalformedJson() throws Exception {
+                String malformedJson = """
+                                {
+                                    "name": "Proyecto de prueba",
+                                    "description":
+                                }
+                                """;
 
-        verifyNoInteractions(createProjectUseCase);
-    }
+                mockMvc.perform(post("/api/projects")
+                                .contentType("application/json")
+                                .content(malformedJson))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.status").value(400))
+                                .andExpect(jsonPath("$.title").value("Malformed request"));
 
-    @Test
-    void shouldReturn400WhenProjectIdIsNotAValidUuid() throws Exception {
-        mockMvc.perform(get("/api/projects/{id}", "no-es-un-uuid"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(400))
-                .andExpect(jsonPath("$.title").value("Invalid parameter"));
+                verifyNoInteractions(createProjectUseCase);
+        }
 
-        verifyNoInteractions(getProjectByIdUseCase);
-    }
+        @Test
+        void shouldReturn400WhenProjectIdIsNotAValidUuid() throws Exception {
+                mockMvc.perform(get("/api/projects/{id}", "no-es-un-uuid"))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.status").value(400))
+                                .andExpect(jsonPath("$.title").value("Invalid parameter"));
 
-    @Test
-    void shouldReturn404WhenProjectDoesNotExist() throws Exception {
-        java.util.UUID projectId = java.util.UUID.fromString(
-                "00000000-0000-0000-0000-000000000000");
+                verifyNoInteractions(getProjectByIdUseCase);
+        }
 
-        when(getProjectByIdUseCase.execute(projectId))
-                .thenThrow(new ProjectNotFoundException(projectId));
+        @Test
+        void shouldReturn404WhenProjectDoesNotExist() throws Exception {
+                java.util.UUID projectId = java.util.UUID.fromString(
+                                "00000000-0000-0000-0000-000000000000");
 
-        mockMvc.perform(get("/api/projects/{id}", projectId))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.status").value(404))
-                .andExpect(jsonPath("$.title").value("Project not found"))
-                .andExpect(jsonPath("$.detail")
-                        .value("No se encontró el proyecto con ID: " + projectId));
-    }
+                when(getProjectByIdUseCase.execute(projectId))
+                                .thenThrow(new ProjectNotFoundException(projectId));
 
-    @Test
-    void shouldReturn409WhenProjectDataConflicts() throws Exception {
-        when(createProjectUseCase.execute(anyString(), anyString()))
-                .thenThrow(new DataIntegrityViolationException(
-                        "Data integrity conflict"));
+                mockMvc.perform(get("/api/projects/{id}", projectId))
+                                .andExpect(status().isNotFound())
+                                .andExpect(jsonPath("$.status").value(404))
+                                .andExpect(jsonPath("$.title").value("Project not found"))
+                                .andExpect(jsonPath("$.detail")
+                                                .value("No se encontró el proyecto con ID: " + projectId));
+        }
 
-        String requestBody = """
-                {
-                    "name": "Proyecto de prueba",
-                    "description": "Descripción del proyecto"
-                }
-                """;
+        @Test
+        void shouldReturn409WhenProjectDataConflicts() throws Exception {
+                when(createProjectUseCase.execute(anyString(), anyString()))
+                                .thenThrow(new DataIntegrityViolationException(
+                                                "Data integrity conflict"));
 
-        mockMvc.perform(post("/api/projects")
-                .contentType("application/json")
-                .content(requestBody))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.status").value(409))
-                .andExpect(jsonPath("$.title").value("Data conflict"));
+                String requestBody = """
+                                {
+                                    "name": "Proyecto de prueba",
+                                    "description": "Descripción del proyecto"
+                                }
+                                """;
 
-        verify(createProjectUseCase)
-                .execute("Proyecto de prueba", "Descripción del proyecto");
-    }
+                mockMvc.perform(post("/api/projects")
+                                .contentType("application/json")
+                                .content(requestBody))
+                                .andExpect(status().isConflict())
+                                .andExpect(jsonPath("$.status").value(409))
+                                .andExpect(jsonPath("$.title").value("Data conflict"));
 
-    @Test
-    void shouldReturn201WhenProjectIsCreatedSuccessfully() throws Exception {
-        Project project = Project.create(
-                "Proyecto de prueba",
-                "Descripción del proyecto");
+                verify(createProjectUseCase)
+                                .execute("Proyecto de prueba", "Descripción del proyecto");
+        }
 
-        when(createProjectUseCase.execute(
-                "Proyecto de prueba",
-                "Descripción del proyecto"))
-                .thenReturn(project);
+        @Test
+        void shouldReturn201WhenProjectIsCreatedSuccessfully() throws Exception {
+                Project project = Project.create(
+                                "Proyecto de prueba",
+                                "Descripción del proyecto");
 
-        String requestBody = """
-                {
-                    "name": "Proyecto de prueba",
-                    "description": "Descripción del proyecto"
-                }
-                """;
+                when(createProjectUseCase.execute(
+                                "Proyecto de prueba",
+                                "Descripción del proyecto"))
+                                .thenReturn(project);
 
-        mockMvc.perform(post("/api/projects")
-                .contentType("application/json")
-                .content(requestBody))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").value(project.getId().toString()))
-                .andExpect(jsonPath("$.name").value("Proyecto de prueba"))
-                .andExpect(jsonPath("$.description")
-                        .value("Descripción del proyecto"))
-                .andExpect(jsonPath("$.createdAt").exists());
+                String requestBody = """
+                                {
+                                    "name": "Proyecto de prueba",
+                                    "description": "Descripción del proyecto"
+                                }
+                                """;
 
-        verify(createProjectUseCase).execute(
-                "Proyecto de prueba",
-                "Descripción del proyecto");
-    }
+                mockMvc.perform(post("/api/projects")
+                                .contentType("application/json")
+                                .content(requestBody))
+                                .andExpect(status().isCreated())
+                                .andExpect(jsonPath("$.id").value(project.getId().toString()))
+                                .andExpect(jsonPath("$.name").value("Proyecto de prueba"))
+                                .andExpect(jsonPath("$.description")
+                                                .value("Descripción del proyecto"))
+                                .andExpect(jsonPath("$.createdAt").exists());
 
-    @Test
-    void shouldReturn200WhenProjectsAreRetrievedSuccessfully() throws Exception {
-        Project project = Project.create(
-                "Proyecto de prueba",
-                "Descripción del proyecto");
+                verify(createProjectUseCase).execute(
+                                "Proyecto de prueba",
+                                "Descripción del proyecto");
+        }
 
-        when(getAllProjectsUseCase.execute())
-                .thenReturn(java.util.List.of(project));
+        @Test
+        void shouldReturn200WhenProjectsAreRetrievedSuccessfully() throws Exception {
+                Project project = Project.create(
+                                "Proyecto de prueba",
+                                "Descripción del proyecto");
 
-        mockMvc.perform(get("/api/projects"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].id")
-                        .value(project.getId().toString()))
-                .andExpect(jsonPath("$[0].name")
-                        .value("Proyecto de prueba"))
-                .andExpect(jsonPath("$[0].description")
-                        .value("Descripción del proyecto"));
+                when(getAllProjectsUseCase.execute())
+                                .thenReturn(java.util.List.of(project));
 
-        verify(getAllProjectsUseCase).execute();
-    }
+                mockMvc.perform(get("/api/projects"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$").isArray())
+                                .andExpect(jsonPath("$.length()").value(1))
+                                .andExpect(jsonPath("$[0].id")
+                                                .value(project.getId().toString()))
+                                .andExpect(jsonPath("$[0].name")
+                                                .value("Proyecto de prueba"))
+                                .andExpect(jsonPath("$[0].description")
+                                                .value("Descripción del proyecto"));
 
-    @Test
-    void shouldReturn200WhenProjectIsRetrievedSuccessfully() throws Exception {
-        Project project = Project.create(
-                "Proyecto de prueba",
-                "Descripción del proyecto");
+                verify(getAllProjectsUseCase).execute();
+        }
 
-        when(getProjectByIdUseCase.execute(project.getId()))
-                .thenReturn(project);
+        @Test
+        void shouldReturn200WhenProjectIsRetrievedSuccessfully() throws Exception {
+                Project project = Project.create(
+                                "Proyecto de prueba",
+                                "Descripción del proyecto");
 
-        mockMvc.perform(get("/api/projects/{id}", project.getId()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id")
-                        .value(project.getId().toString()))
-                .andExpect(jsonPath("$.name")
-                        .value("Proyecto de prueba"))
-                .andExpect(jsonPath("$.description")
-                        .value("Descripción del proyecto"))
-                .andExpect(jsonPath("$.createdAt").exists());
+                when(getProjectByIdUseCase.execute(project.getId()))
+                                .thenReturn(project);
 
-        verify(getProjectByIdUseCase).execute(project.getId());
-    }
+                mockMvc.perform(get("/api/projects/{id}", project.getId()))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.id")
+                                                .value(project.getId().toString()))
+                                .andExpect(jsonPath("$.name")
+                                                .value("Proyecto de prueba"))
+                                .andExpect(jsonPath("$.description")
+                                                .value("Descripción del proyecto"))
+                                .andExpect(jsonPath("$.createdAt").exists());
 
-    @Test
-    void shouldReturn200WhenProjectIsUpdatedSuccessfully() throws Exception {
-        Project project = Project.create(
-                "Proyecto actualizado",
-                "Descripción actualizada");
+                verify(getProjectByIdUseCase).execute(project.getId());
+        }
 
-        when(updateProjectUseCase.execute(
-                project.getId(),
-                "Proyecto actualizado",
-                "Descripción actualizada"))
-                .thenReturn(project);
+        @Test
+        void shouldReturn200WhenProjectIsUpdatedSuccessfully() throws Exception {
+                Project project = Project.create(
+                                "Proyecto actualizado",
+                                "Descripción actualizada");
 
-        String requestBody = """
-                {
-                    "name": "Proyecto actualizado",
-                    "description": "Descripción actualizada"
-                }
-                """;
+                when(updateProjectUseCase.execute(
+                                project.getId(),
+                                "Proyecto actualizado",
+                                "Descripción actualizada"))
+                                .thenReturn(project);
 
-        mockMvc.perform(put("/api/projects/{id}", project.getId())
-                .contentType("application/json")
-                .content(requestBody))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id")
-                        .value(project.getId().toString()))
-                .andExpect(jsonPath("$.name")
-                        .value("Proyecto actualizado"))
-                .andExpect(jsonPath("$.description")
-                        .value("Descripción actualizada"))
-                .andExpect(jsonPath("$.createdAt").exists());
+                String requestBody = """
+                                {
+                                    "name": "Proyecto actualizado",
+                                    "description": "Descripción actualizada"
+                                }
+                                """;
 
-        verify(updateProjectUseCase).execute(
-                project.getId(),
-                "Proyecto actualizado",
-                "Descripción actualizada");
-    }
+                mockMvc.perform(put("/api/projects/{id}", project.getId())
+                                .contentType("application/json")
+                                .content(requestBody))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.id")
+                                                .value(project.getId().toString()))
+                                .andExpect(jsonPath("$.name")
+                                                .value("Proyecto actualizado"))
+                                .andExpect(jsonPath("$.description")
+                                                .value("Descripción actualizada"))
+                                .andExpect(jsonPath("$.createdAt").exists());
 
-    @Test
-    void shouldReturn204WhenProjectIsDeletedSuccessfully() throws Exception {
-        Project project = Project.create(
-                "Proyecto por eliminar",
-                "Descripción del proyecto");
+                verify(updateProjectUseCase).execute(
+                                project.getId(),
+                                "Proyecto actualizado",
+                                "Descripción actualizada");
+        }
 
-        mockMvc.perform(delete("/api/projects/{id}", project.getId()))
-                .andExpect(status().isNoContent())
-                .andExpect(content().string(""));
+        @Test
+        void shouldReturn204WhenProjectIsDeletedSuccessfully() throws Exception {
+                Project project = Project.create(
+                                "Proyecto por eliminar",
+                                "Descripción del proyecto");
 
-        verify(deleteProjectUseCase).execute(project.getId());
-    }
+                mockMvc.perform(delete("/api/projects/{id}", project.getId()))
+                                .andExpect(status().isNoContent())
+                                .andExpect(content().string(""));
+
+                verify(deleteProjectUseCase).execute(project.getId());
+        }
 }

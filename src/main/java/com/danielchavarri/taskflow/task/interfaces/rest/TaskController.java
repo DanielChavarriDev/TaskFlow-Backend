@@ -4,11 +4,13 @@ package com.danielchavarri.taskflow.task.interfaces.rest;
 import com.danielchavarri.taskflow.task.application.ChangeTaskStatusService;
 import com.danielchavarri.taskflow.task.application.CreateTaskService;
 import com.danielchavarri.taskflow.task.application.DeleteTaskService;
-import com.danielchavarri.taskflow.task.application.GetAllTasksService;
+import com.danielchavarri.taskflow.task.application.GetFilteredTasksService;
 import com.danielchavarri.taskflow.task.application.GetTaskByIdService;
 import com.danielchavarri.taskflow.task.application.GetTasksByProjectService;
 import com.danielchavarri.taskflow.task.application.UpdateTaskService;
 import com.danielchavarri.taskflow.task.domain.model.Task;
+import com.danielchavarri.taskflow.task.domain.model.TaskPriority;
+import com.danielchavarri.taskflow.task.domain.model.TaskStatus;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -21,7 +23,7 @@ import java.util.UUID;
 public class TaskController {
 
     private final CreateTaskService createTaskService;
-    private final GetAllTasksService getAllTasksService;
+    private final GetFilteredTasksService getFilteredTasksService;
     private final GetTaskByIdService getTaskByIdService;
     private final GetTasksByProjectService getTasksByProjectService;
     private final UpdateTaskService updateTaskService;
@@ -30,7 +32,7 @@ public class TaskController {
 
     public TaskController(
             CreateTaskService createTaskService,
-            GetAllTasksService getAllTasksService,
+            GetFilteredTasksService getFilteredTasksService,
             GetTaskByIdService getTaskByIdService,
             GetTasksByProjectService getTasksByProjectService,
             UpdateTaskService updateTaskService,
@@ -38,7 +40,7 @@ public class TaskController {
             DeleteTaskService deleteTaskService) {
 
         this.createTaskService = createTaskService;
-        this.getAllTasksService = getAllTasksService;
+        this.getFilteredTasksService = getFilteredTasksService;
         this.getTaskByIdService = getTaskByIdService;
         this.getTasksByProjectService = getTasksByProjectService;
         this.updateTaskService = updateTaskService;
@@ -60,8 +62,11 @@ public class TaskController {
     }
 
     @GetMapping
-    public List<TaskResponse> getAll() {
-        return getAllTasksService.execute()
+    public List<TaskResponse> getAll(
+            @RequestParam(required = false) TaskStatus status,
+            @RequestParam(required = false) TaskPriority priority) {
+
+        return getFilteredTasksService.execute(status, priority)
                 .stream()
                 .map(TaskResponse::from)
                 .toList();
