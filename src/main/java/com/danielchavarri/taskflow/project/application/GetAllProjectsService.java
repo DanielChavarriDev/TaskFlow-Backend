@@ -1,3 +1,4 @@
+
 package com.danielchavarri.taskflow.project.application;
 
 import com.danielchavarri.taskflow.project.domain.model.Project;
@@ -6,9 +7,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
-@Transactional(readOnly = true)
 public class GetAllProjectsService implements GetAllProjectsUseCase {
 
     private final ProjectRepository projectRepository;
@@ -18,7 +19,8 @@ public class GetAllProjectsService implements GetAllProjectsUseCase {
     }
 
     @Override
-    public List<Project> execute() {
-        return projectRepository.findAll();
+    @Transactional(readOnly = true)
+    public List<Project> execute(UUID ownerId) {
+        return projectRepository.findAllByOwnerId(ownerId);
     }
 }

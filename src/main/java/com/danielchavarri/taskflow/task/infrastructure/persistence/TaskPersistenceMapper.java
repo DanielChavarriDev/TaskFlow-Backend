@@ -2,7 +2,9 @@
 package com.danielchavarri.taskflow.task.infrastructure.persistence;
 
 import com.danielchavarri.taskflow.task.domain.model.Task;
+import org.springframework.stereotype.Component;
 
+@Component
 public class TaskPersistenceMapper {
 
     public TaskJpaEntity toEntity(Task task) {

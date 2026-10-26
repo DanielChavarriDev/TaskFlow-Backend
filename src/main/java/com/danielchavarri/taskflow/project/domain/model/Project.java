@@ -1,3 +1,4 @@
+
 package com.danielchavarri.taskflow.project.domain.model;
 
 import java.time.Instant;
@@ -7,24 +8,31 @@ import java.util.UUID;
 public class Project {
 
     private final UUID id;
+    private final UUID ownerId;
     private String name;
     private String description;
     private final Instant createdAt;
 
     private Project(
             UUID id,
+            UUID ownerId,
             String name,
             String description,
             Instant createdAt) {
-        this.id = Objects.requireNonNull(id);
+        this.id = Objects.requireNonNull(id, "El ID es obligatorio.");
+        this.ownerId = Objects.requireNonNull(ownerId, "El propietario es obligatorio.");
         this.createdAt = Objects.requireNonNull(createdAt);
         this.name = validateName(name);
         this.description = normalizeDescription(description);
     }
 
-    public static Project create(String name, String description) {
+    public static Project create(
+            UUID ownerId,
+            String name,
+            String description) {
         return new Project(
                 UUID.randomUUID(),
+                ownerId,
                 name,
                 description,
                 Instant.now());
@@ -32,10 +40,11 @@ public class Project {
 
     public static Project reconstitute(
             UUID id,
+            UUID ownerId,
             String name,
             String description,
             Instant createdAt) {
-        return new Project(id, name, description, createdAt);
+        return new Project(id, ownerId, name, description, createdAt);
     }
 
     public void updateDetails(String name, String description) {
@@ -76,6 +85,10 @@ public class Project {
 
     public UUID getId() {
         return id;
+    }
+
+    public UUID getOwnerId() {
+        return ownerId;
     }
 
     public String getName() {

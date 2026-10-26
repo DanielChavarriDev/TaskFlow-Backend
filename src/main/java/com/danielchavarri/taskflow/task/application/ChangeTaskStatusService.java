@@ -5,6 +5,7 @@ import com.danielchavarri.taskflow.task.domain.model.Task;
 import com.danielchavarri.taskflow.task.domain.model.TaskStatus;
 import com.danielchavarri.taskflow.task.domain.port.TaskRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
@@ -17,8 +18,9 @@ public class ChangeTaskStatusService {
         this.taskRepository = taskRepository;
     }
 
-    public Task execute(UUID id, TaskStatus status) {
-        Task task = taskRepository.findById(id)
+    @Transactional
+    public Task execute(UUID id, UUID ownerId, TaskStatus status) {
+        Task task = taskRepository.findByIdAndOwnerId(id, ownerId)
                 .orElseThrow(() -> new TaskNotFoundException(id));
 
         task.changeStatus(status);

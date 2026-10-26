@@ -1,3 +1,4 @@
+
 package com.danielchavarri.taskflow.project.domain.port;
 
 import com.danielchavarri.taskflow.project.domain.model.Project;
@@ -10,9 +11,9 @@ public interface ProjectRepository {
 
     Project save(Project project);
 
-    Optional<Project> findById(UUID id);
+    Optional<Project> findByIdAndOwnerId(UUID id, UUID ownerId);
 
-    List<Project> findAll();
+    List<Project> findAllByOwnerId(UUID ownerId);
 
-    void deleteById(UUID id);
+    void deleteByIdAndOwnerId(UUID id, UUID ownerId);
 }

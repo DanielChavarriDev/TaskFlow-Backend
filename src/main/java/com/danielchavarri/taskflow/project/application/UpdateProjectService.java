@@ -1,3 +1,4 @@
+
 package com.danielchavarri.taskflow.project.application;
 
 import com.danielchavarri.taskflow.project.domain.model.Project;
@@ -8,7 +9,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.UUID;
 
 @Service
-@Transactional
 public class UpdateProjectService implements UpdateProjectUseCase {
 
     private final ProjectRepository projectRepository;
@@ -18,8 +18,14 @@ public class UpdateProjectService implements UpdateProjectUseCase {
     }
 
     @Override
-    public Project execute(UUID id, String name, String description) {
-        Project project = projectRepository.findById(id)
+    @Transactional
+    public Project execute(
+            UUID id,
+            UUID ownerId,
+            String name,
+            String description) {
+
+        Project project = projectRepository.findByIdAndOwnerId(id, ownerId)
                 .orElseThrow(() -> new ProjectNotFoundException(id));
 
         project.updateDetails(name, description);

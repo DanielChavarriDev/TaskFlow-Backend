@@ -1,9 +1,9 @@
 
 package com.danielchavarri.taskflow.task.application;
 
-import com.danielchavarri.taskflow.task.domain.model.Task;
 import com.danielchavarri.taskflow.task.domain.port.TaskRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
@@ -16,10 +16,12 @@ public class DeleteTaskService {
         this.taskRepository = taskRepository;
     }
 
-    public void execute(UUID id) {
-        Task task = taskRepository.findById(id)
-                .orElseThrow(() -> new TaskNotFoundException(id));
+    @Transactional
+    public void execute(UUID id, UUID ownerId) {
+        int deletedRows = taskRepository.deleteByIdAndOwnerId(id, ownerId);
 
-        taskRepository.deleteById(task.getId());
+        if (deletedRows == 0) {
+            throw new TaskNotFoundException(id);
+        }
     }
 }

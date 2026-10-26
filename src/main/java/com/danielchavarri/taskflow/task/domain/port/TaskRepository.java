@@ -13,15 +13,18 @@ public interface TaskRepository {
 
     Task save(Task task);
 
-    Optional<Task> findById(UUID id);
+    Optional<Task> findByIdAndOwnerId(UUID id, UUID ownerId);
 
-    List<Task> findAll();
+    List<Task> findAllByOwnerId(UUID ownerId);
 
-    List<Task> findByProjectId(UUID projectId);
+    List<Task> findByProjectIdAndOwnerId(
+            UUID projectId,
+            UUID ownerId);
 
-    void deleteById(UUID id);
+    int deleteByIdAndOwnerId(UUID id, UUID ownerId);
 
-    List<Task> findByFilters(
-        TaskStatus status,
-        TaskPriority priority);
+    List<Task> findByFiltersAndOwnerId(
+            UUID ownerId,
+            TaskStatus status,
+            TaskPriority priority);
 }

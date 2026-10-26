@@ -13,6 +13,8 @@ import com.danielchavarri.taskflow.task.domain.model.TaskPriority;
 import com.danielchavarri.taskflow.task.domain.model.TaskStatus;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -38,7 +40,6 @@ public class TaskController {
             UpdateTaskService updateTaskService,
             ChangeTaskStatusService changeTaskStatusService,
             DeleteTaskService deleteTaskService) {
-
         this.createTaskService = createTaskService;
         this.getFilteredTasksService = getFilteredTasksService;
         this.getTaskByIdService = getTaskByIdService;
@@ -50,9 +51,12 @@ public class TaskController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public TaskResponse create(@Valid @RequestBody CreateTaskRequest request) {
+    public TaskResponse create(
+            @Valid @RequestBody CreateTaskRequest request) {
+
         Task task = createTaskService.execute(
                 request.projectId(),
+                getAuthenticatedUserId(),
                 request.title(),
                 request.description(),
                 request.priority(),
@@ -66,7 +70,10 @@ public class TaskController {
             @RequestParam(required = false) TaskStatus status,
             @RequestParam(required = false) TaskPriority priority) {
 
-        return getFilteredTasksService.execute(status, priority)
+        return getFilteredTasksService.execute(
+                getAuthenticatedUserId(),
+                status,
+                priority)
                 .stream()
                 .map(TaskResponse::from)
                 .toList();
@@ -74,12 +81,15 @@ public class TaskController {
 
     @GetMapping("/{id}")
     public TaskResponse getById(@PathVariable UUID id) {
-        return TaskResponse.from(getTaskByIdService.execute(id));
+        return TaskResponse.from(
+                getTaskByIdService.execute(id, getAuthenticatedUserId()));
     }
 
     @GetMapping("/project/{projectId}")
     public List<TaskResponse> getByProject(@PathVariable UUID projectId) {
-        return getTasksByProjectService.execute(projectId)
+        return getTasksByProjectService.execute(
+                projectId,
+                getAuthenticatedUserId())
                 .stream()
                 .map(TaskResponse::from)
                 .toList();
@@ -92,6 +102,7 @@ public class TaskController {
 
         Task task = updateTaskService.execute(
                 id,
+                getAuthenticatedUserId(),
                 request.title(),
                 request.description(),
                 request.priority(),
@@ -105,7 +116,10 @@ public class TaskController {
             @PathVariable UUID id,
             @Valid @RequestBody ChangeTaskStatusRequest request) {
 
-        Task task = changeTaskStatusService.execute(id, request.status());
+        Task task = changeTaskStatusService.execute(
+                id,
+                getAuthenticatedUserId(),
+                request.status());
 
         return TaskResponse.from(task);
     }
@@ -113,6 +127,21 @@ public class TaskController {
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable UUID id) {
-        deleteTaskService.execute(id);
+        deleteTaskService.execute(id, getAuthenticatedUserId());
+    }
+
+    private UUID getAuthenticatedUserId() {
+        Authentication authentication = SecurityContextHolder
+                .getContext()
+                .getAuthentication();
+
+        if (authentication == null
+                || !(authentication.getPrincipal() instanceof UUID userId)
+                || !authentication.isAuthenticated()) {
+            throw new IllegalStateException(
+                    "No se pudo obtener el usuario autenticado.");
+        }
+
+        return userId;
     }
 }

@@ -8,7 +8,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.UUID;
 
 @Service
-@Transactional
 public class DeleteProjectService implements DeleteProjectUseCase {
 
     private final ProjectRepository projectRepository;
@@ -18,10 +17,11 @@ public class DeleteProjectService implements DeleteProjectUseCase {
     }
 
     @Override
-    public void execute(UUID id) {
-        projectRepository.findById(id)
+    @Transactional
+    public void execute(UUID id, UUID ownerId) {
+        projectRepository.findByIdAndOwnerId(id, ownerId)
                 .orElseThrow(() -> new ProjectNotFoundException(id));
 
-        projectRepository.deleteById(id);
+        projectRepository.deleteByIdAndOwnerId(id, ownerId);
     }
 }

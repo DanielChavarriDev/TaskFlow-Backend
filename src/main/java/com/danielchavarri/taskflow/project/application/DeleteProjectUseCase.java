@@ -5,5 +5,5 @@ import java.util.UUID;
 
 public interface DeleteProjectUseCase {
 
-    void execute(UUID id);
+    void execute(UUID id, UUID ownerId);
 }

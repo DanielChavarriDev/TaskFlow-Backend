@@ -6,6 +6,7 @@ import com.danielchavarri.taskflow.task.domain.model.TaskPriority;
 import com.danielchavarri.taskflow.task.domain.model.TaskStatus;
 import com.danielchavarri.taskflow.task.domain.port.TaskRepository;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -18,12 +19,14 @@ public class TaskRepositoryAdapter implements TaskRepository {
     private final TaskPersistenceMapper mapper;
 
     public TaskRepositoryAdapter(
-            SpringDataTaskRepository springDataRepository) {
+            SpringDataTaskRepository springDataRepository,
+            TaskPersistenceMapper mapper) {
         this.springDataRepository = springDataRepository;
-        this.mapper = new TaskPersistenceMapper();
+        this.mapper = mapper;
     }
 
     @Override
+    @Transactional
     public Task save(Task task) {
         TaskJpaEntity entity = mapper.toEntity(task);
         TaskJpaEntity savedEntity = springDataRepository.save(entity);
@@ -31,59 +34,52 @@ public class TaskRepositoryAdapter implements TaskRepository {
     }
 
     @Override
-    public Optional<Task> findById(UUID id) {
-        return springDataRepository.findById(id)
+    @Transactional(readOnly = true)
+    public Optional<Task> findByIdAndOwnerId(UUID id, UUID ownerId) {
+        return springDataRepository.findByIdAndOwnerId(id, ownerId)
                 .map(mapper::toDomain);
     }
 
     @Override
-    public List<Task> findAll() {
-        return springDataRepository.findAll()
+    @Transactional(readOnly = true)
+    public List<Task> findAllByOwnerId(UUID ownerId) {
+        return springDataRepository.findAllByOwnerId(ownerId)
                 .stream()
                 .map(mapper::toDomain)
                 .toList();
     }
 
     @Override
-    public List<Task> findByProjectId(UUID projectId) {
-        return springDataRepository.findByProjectId(projectId)
+    @Transactional(readOnly = true)
+    public List<Task> findByProjectIdAndOwnerId(
+            UUID projectId,
+            UUID ownerId) {
+        return springDataRepository
+                .findByProjectIdAndOwnerId(projectId, ownerId)
                 .stream()
                 .map(mapper::toDomain)
                 .toList();
     }
 
     @Override
-    public void deleteById(UUID id) {
-        springDataRepository.deleteById(id);
+    @Transactional
+    public int deleteByIdAndOwnerId(UUID id, UUID ownerId) {
+        return springDataRepository.deleteByIdAndOwnerId(id, ownerId);
     }
 
     @Override
-    public List<Task> findByFilters(
+    @Transactional(readOnly = true)
+    public List<Task> findByFiltersAndOwnerId(
+            UUID ownerId,
             TaskStatus status,
             TaskPriority priority) {
 
-        if (status != null && priority != null) {
-            return springDataRepository
-                    .findByStatusAndPriority(status, priority)
-                    .stream()
-                    .map(mapper::toDomain)
-                    .toList();
-        }
-
-        if (status != null) {
-            return springDataRepository.findByStatus(status)
-                    .stream()
-                    .map(mapper::toDomain)
-                    .toList();
-        }
-
-        if (priority != null) {
-            return springDataRepository.findByPriority(priority)
-                    .stream()
-                    .map(mapper::toDomain)
-                    .toList();
-        }
-
-        return findAll();
+        return springDataRepository.findByFiltersAndOwnerId(
+                ownerId,
+                status == null ? null : status.name(),
+                priority == null ? null : priority.name())
+                .stream()
+                .map(mapper::toDomain)
+                .toList();
     }
 }

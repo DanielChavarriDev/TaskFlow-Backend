@@ -1,3 +1,4 @@
+
 package com.danielchavarri.taskflow.project.interfaces.rest;
 
 import com.danielchavarri.taskflow.project.application.CreateProjectUseCase;
@@ -8,9 +9,12 @@ import com.danielchavarri.taskflow.project.application.UpdateProjectUseCase;
 import com.danielchavarri.taskflow.project.domain.model.Project;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-import java.util.UUID;
+
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/projects")
@@ -39,7 +43,11 @@ public class ProjectController {
     @ResponseStatus(HttpStatus.CREATED)
     public ProjectResponse create(
             @Valid @RequestBody CreateProjectRequest request) {
+
+        UUID ownerId = getAuthenticatedUserId();
+
         Project project = createProjectUseCase.execute(
+                ownerId,
                 request.name(),
                 request.description());
 
@@ -48,7 +56,9 @@ public class ProjectController {
 
     @GetMapping
     public List<ProjectResponse> findAll() {
-        return getAllProjectsUseCase.execute()
+        UUID ownerId = getAuthenticatedUserId();
+
+        return getAllProjectsUseCase.execute(ownerId)
                 .stream()
                 .map(ProjectResponse::from)
                 .toList();
@@ -56,8 +66,10 @@ public class ProjectController {
 
     @GetMapping("/{id}")
     public ProjectResponse findById(@PathVariable UUID id) {
+        UUID ownerId = getAuthenticatedUserId();
+
         return ProjectResponse.from(
-                getProjectByIdUseCase.execute(id));
+                getProjectByIdUseCase.execute(id, ownerId));
     }
 
     @PutMapping("/{id}")
@@ -65,8 +77,11 @@ public class ProjectController {
             @PathVariable UUID id,
             @Valid @RequestBody CreateProjectRequest request) {
 
+        UUID ownerId = getAuthenticatedUserId();
+
         Project updatedProject = updateProjectUseCase.execute(
                 id,
+                ownerId,
                 request.name(),
                 request.description());
 
@@ -76,6 +91,22 @@ public class ProjectController {
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable UUID id) {
-        deleteProjectUseCase.execute(id);
+        UUID ownerId = getAuthenticatedUserId();
+        deleteProjectUseCase.execute(id, ownerId);
+    }
+
+    private UUID getAuthenticatedUserId() {
+        Authentication authentication = SecurityContextHolder
+                .getContext()
+                .getAuthentication();
+
+        if (authentication == null
+                || !(authentication.getPrincipal() instanceof UUID userId)
+                || !authentication.isAuthenticated()) {
+            throw new IllegalStateException(
+                    "No se pudo obtener el usuario autenticado.");
+        }
+
+        return userId;
     }
 }
