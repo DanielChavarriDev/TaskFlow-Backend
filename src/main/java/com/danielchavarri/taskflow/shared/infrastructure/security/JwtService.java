@@ -22,6 +22,12 @@ public class JwtService {
             @Value("${taskflow.jwt.expiration-ms:3600000}") long expirationMs) {
         this.secretKey = jwtSecretKey;
         this.expirationMs = expirationMs;
+        if (expirationMs <= 0)
+
+        {
+            throw new IllegalArgumentException(
+                    "JWT expiration must be greater than zero");
+        }
     }
 
     public String generateToken(UUID userId, String email) {

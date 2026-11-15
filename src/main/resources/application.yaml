@@ -25,10 +25,19 @@ server:
 
 taskflow:
   jwt:
-    secret: ${TASKFLOW_JWT_SECRET}
+    secret: ${JWT_SECRET_BASE64}
+
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
 
   admin:
     provision-enabled: ${TASKFLOW_ADMIN_PROVISION_ENABLED:false}
     email: ${TASKFLOW_ADMIN_EMAIL:}
     password: ${TASKFLOW_ADMIN_PASSWORD:}
     name: ${TASKFLOW_ADMIN_NAME:TaskFlow Administrator}
+
+springdoc:
+  api-docs:
+    enabled: ${SPRINGDOC_API_DOCS_ENABLED:true}
+  swagger-ui:
+    enabled: ${SPRINGDOC_SWAGGER_UI_ENABLED:true}

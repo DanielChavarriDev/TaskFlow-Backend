@@ -3,6 +3,7 @@ package com.danielchavarri.taskflow.task.interfaces.rest;
 
 import com.danielchavarri.taskflow.common.interfaces.rest.GlobalExceptionHandler;
 import com.danielchavarri.taskflow.shared.infrastructure.security.JwtService;
+import com.danielchavarri.taskflow.shared.infrastructure.security.RestAuthenticationEntryPoint;
 import com.danielchavarri.taskflow.task.application.AdminInterveneTaskService;
 import com.danielchavarri.taskflow.task.application.ApproveTaskCompletionService;
 import com.danielchavarri.taskflow.task.application.CreateTaskService;
@@ -35,7 +36,10 @@ import static org.mockito.Mockito.verifyNoInteractions;
 
 @WebMvcTest(TaskController.class)
 @AutoConfigureMockMvc(addFilters = false)
-@Import(GlobalExceptionHandler.class)
+@Import({
+                GlobalExceptionHandler.class,
+                RestAuthenticationEntryPoint.class
+})
 class TaskControllerValidationTest {
 
         @Autowired

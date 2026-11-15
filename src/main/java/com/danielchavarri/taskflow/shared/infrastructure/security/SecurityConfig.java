@@ -4,10 +4,12 @@ package com.danielchavarri.taskflow.shared.infrastructure.security;
 import java.util.List;
 
 import jakarta.servlet.http.HttpServletResponse;
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.beans.factory.annotation.Value;
+import java.util.Arrays;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -29,20 +31,25 @@ public class SecurityConfig {
         }
 
         @Bean
-        public CorsConfigurationSource corsConfigurationSource() {
+        public CorsConfigurationSource corsConfigurationSource(
+                        @Value("${taskflow.cors.allowed-origins}") String allowedOrigins) {
+
                 CorsConfiguration configuration = new CorsConfiguration();
 
-                configuration.setAllowedOrigins(
-                                List.of("http://localhost:5173"));
+                List<String> origins = Arrays.stream(allowedOrigins.split(","))
+                                .map(String::trim)
+                                .filter(origin -> !origin.isBlank())
+                                .toList();
+
+                if (origins.isEmpty()) {
+                        throw new IllegalStateException(
+                                        "CORS_ALLOWED_ORIGINS debe contener al menos un origen válido.");
+                }
+
+                configuration.setAllowedOrigins(origins);
 
                 configuration.setAllowedMethods(
-                                List.of(
-                                                "GET",
-                                                "POST",
-                                                "PUT",
-                                                "PATCH",
-                                                "DELETE",
-                                                "OPTIONS"));
+                                List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
 
                 configuration.setAllowedHeaders(
                                 List.of("Authorization", "Content-Type"));
@@ -81,7 +88,8 @@ public class SecurityConfig {
         @Bean
         public SecurityFilterChain securityFilterChain(
                         HttpSecurity http,
-                        AccessDeniedHandler accessDeniedHandler)
+                        AccessDeniedHandler accessDeniedHandler,
+                        RestAuthenticationEntryPoint authenticationEntryPoint)
                         throws Exception {
 
                 http
@@ -146,6 +154,7 @@ public class SecurityConfig {
                                                 .anyRequest().authenticated())
 
                                 .exceptionHandling(exceptions -> exceptions
+                                                .authenticationEntryPoint(authenticationEntryPoint)
                                                 .accessDeniedHandler(accessDeniedHandler))
 
                                 .addFilterBefore(
@@ -153,5 +162,16 @@ public class SecurityConfig {
                                                 UsernamePasswordAuthenticationFilter.class);
 
                 return http.build();
+        }
+
+        @Bean
+        public FilterRegistrationBean<JwtAuthenticationFilter> jwtAuthenticationFilterRegistration(
+                        JwtAuthenticationFilter filter) {
+
+                FilterRegistrationBean<JwtAuthenticationFilter> registration = new FilterRegistrationBean<>(filter);
+
+                registration.setEnabled(false);
+
+                return registration;
         }
 }

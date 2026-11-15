@@ -6,7 +6,7 @@ import com.danielchavarri.taskflow.user.domain.port.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 
 @Service
@@ -34,6 +34,11 @@ public class RegisterUserService {
 
         if (userRepository.existsByEmail(normalizedEmail)) {
             throw new EmailAlreadyExistsException();
+        }
+
+        if (password.getBytes(StandardCharsets.UTF_8).length > 72) {
+            throw new IllegalArgumentException(
+                    "Password must not exceed 72 bytes when encoded in UTF-8");
         }
 
         String passwordHash = passwordEncoder.encode(password);

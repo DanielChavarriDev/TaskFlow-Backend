@@ -10,19 +10,20 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.danielchavarri.taskflow.task.domain.model.Task;
 import com.danielchavarri.taskflow.task.domain.model.TaskStatus;
+import com.danielchavarri.taskflow.task.domain.model.TaskStatusAudit;
 import com.danielchavarri.taskflow.task.domain.port.TaskRepository;
-import com.danielchavarri.taskflow.task.infrastructure.persistence.SpringDataTaskStatusAuditRepository;
-import com.danielchavarri.taskflow.task.infrastructure.persistence.TaskStatusAuditJpaEntity;
+import com.danielchavarri.taskflow.task.domain.port.TaskStatusAuditRepository;
 
 @Service
 public class AdminInterveneTaskService {
 
     private final TaskRepository taskRepository;
-    private final SpringDataTaskStatusAuditRepository auditRepository;
+    private final TaskStatusAuditRepository auditRepository;
 
     public AdminInterveneTaskService(
             TaskRepository taskRepository,
-            SpringDataTaskStatusAuditRepository auditRepository) {
+            TaskStatusAuditRepository auditRepository) {
+
         this.taskRepository = taskRepository;
         this.auditRepository = auditRepository;
     }
@@ -35,8 +36,12 @@ public class AdminInterveneTaskService {
             String reason) {
 
         Objects.requireNonNull(taskId, "El ID de la tarea es obligatorio.");
-        Objects.requireNonNull(adminUserId, "El ID del administrador es obligatorio.");
-        Objects.requireNonNull(newStatus, "El nuevo estado es obligatorio.");
+        Objects.requireNonNull(
+                adminUserId,
+                "El ID del administrador es obligatorio.");
+        Objects.requireNonNull(
+                newStatus,
+                "El nuevo estado es obligatorio.");
 
         if (reason == null || reason.isBlank()) {
             throw new IllegalArgumentException(
@@ -59,7 +64,7 @@ public class AdminInterveneTaskService {
 
         Task savedTask = taskRepository.save(task);
 
-        TaskStatusAuditJpaEntity audit = new TaskStatusAuditJpaEntity(
+        TaskStatusAudit audit = new TaskStatusAudit(
                 UUID.randomUUID(),
                 taskId,
                 adminUserId,

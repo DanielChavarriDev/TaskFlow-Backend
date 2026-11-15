@@ -1,4 +1,3 @@
-
 package com.danielchavarri.taskflow.shared.infrastructure.security;
 
 import com.danielchavarri.taskflow.user.domain.model.User;
@@ -9,6 +8,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -24,12 +24,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final UserRepository userRepository;
+    private final RestAuthenticationEntryPoint authenticationEntryPoint;
 
     public JwtAuthenticationFilter(
             JwtService jwtService,
-            UserRepository userRepository) {
+            UserRepository userRepository,
+            RestAuthenticationEntryPoint authenticationEntryPoint) {
         this.jwtService = jwtService;
         this.userRepository = userRepository;
+        this.authenticationEntryPoint = authenticationEntryPoint;
     }
 
     @Override
@@ -48,6 +51,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         try {
             String token = authorization.substring(7);
+
             Claims claims = jwtService.validateToken(token);
             UUID userId = UUID.fromString(claims.getSubject());
 
@@ -56,9 +60,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             if (user == null) {
                 SecurityContextHolder.clearContext();
-                response.sendError(
-                        HttpServletResponse.SC_UNAUTHORIZED,
-                        "User not found");
+
+                authenticationEntryPoint.commence(
+                        request,
+                        response,
+                        new BadCredentialsException("User not found"));
+
                 return;
             }
 
@@ -76,10 +83,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     .setAuthentication(authentication);
 
         } catch (JwtException | IllegalArgumentException exception) {
+
             SecurityContextHolder.clearContext();
-            response.sendError(
-                    HttpServletResponse.SC_UNAUTHORIZED,
-                    "Invalid or expired token");
+
+            authenticationEntryPoint.commence(
+                    request,
+                    response,
+                    new BadCredentialsException(
+                            "Invalid or expired token",
+                            exception));
+
             return;
         }
 

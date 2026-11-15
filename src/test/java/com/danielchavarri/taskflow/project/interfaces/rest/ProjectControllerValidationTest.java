@@ -9,11 +9,10 @@ import com.danielchavarri.taskflow.project.application.GetProjectByIdUseCase;
 import com.danielchavarri.taskflow.project.application.UpdateProjectUseCase;
 import com.danielchavarri.taskflow.project.domain.model.Project;
 import com.danielchavarri.taskflow.shared.infrastructure.security.JwtService;
+import com.danielchavarri.taskflow.shared.infrastructure.security.RestAuthenticationEntryPoint;
 import com.danielchavarri.taskflow.user.domain.port.UserRepository;
-
 import java.util.List;
 import java.util.UUID;
-
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -26,7 +25,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
-
 import static org.mockito.Mockito.*;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -34,7 +32,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(ProjectController.class)
 @AutoConfigureMockMvc(addFilters = false)
-@Import(GlobalExceptionHandler.class)
+@Import({
+                GlobalExceptionHandler.class,
+                RestAuthenticationEntryPoint.class
+})
 class ProjectControllerValidationTest {
 
         @Autowired

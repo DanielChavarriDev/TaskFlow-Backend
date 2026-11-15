@@ -5,65 +5,111 @@ import com.danielchavarri.taskflow.user.domain.model.User;
 import com.danielchavarri.taskflow.user.domain.port.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+
+import java.nio.charset.StandardCharsets;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 class RegisterUserServiceTest {
 
-    private UserRepository userRepository;
-    private PasswordEncoder passwordEncoder;
-    private RegisterUserService registerUserService;
+        private UserRepository userRepository;
+        private PasswordEncoder passwordEncoder;
+        private RegisterUserService registerUserService;
 
-    @BeforeEach
-    void setUp() {
-        userRepository = mock(UserRepository.class);
-        passwordEncoder = new BCryptPasswordEncoder();
-        registerUserService = new RegisterUserService(
-                userRepository,
-                passwordEncoder);
-    }
+        @BeforeEach
+        void setUp() {
+                userRepository = mock(UserRepository.class);
+                passwordEncoder = mock(PasswordEncoder.class);
 
-    @Test
-    void shouldRegisterUserWithEncodedPassword() {
-        when(userRepository.existsByEmail("daniel@example.com"))
-                .thenReturn(false);
+                registerUserService = new RegisterUserService(
+                                userRepository,
+                                passwordEncoder);
+        }
 
-        when(userRepository.save(any(User.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+        @Test
+        void shouldRegisterUserWithEncodedPassword() {
+                when(userRepository.existsByEmail("daniel@example.com"))
+                                .thenReturn(false);
 
-        User result = registerUserService.execute(
-                "Daniel",
-                "Daniel@Example.com",
-                "SecurePassword123!");
+                when(passwordEncoder.encode("SecurePassword123!"))
+                                .thenReturn("$2a$12$encodedPasswordHash");
 
-        assertNotNull(result.getId());
-        assertEquals("Daniel", result.getName());
-        assertEquals("daniel@example.com", result.getEmail());
-        assertNotEquals("SecurePassword123!", result.getPasswordHash());
-        assertTrue(passwordEncoder.matches(
-                "SecurePassword123!",
-                result.getPasswordHash()));
+                when(userRepository.save(any(User.class)))
+                                .thenAnswer(invocation -> invocation.getArgument(0));
 
-        verify(userRepository).existsByEmail("daniel@example.com");
-        verify(userRepository).save(any(User.class));
-    }
+                User result = registerUserService.execute(
+                                "Daniel",
+                                "Daniel@Example.com",
+                                "SecurePassword123!");
 
-    @Test
-    void shouldRejectDuplicateEmail() {
-        when(userRepository.existsByEmail("daniel@example.com"))
-                .thenReturn(true);
+                assertNotNull(result.getId());
+                assertEquals("Daniel", result.getName());
+                assertEquals("daniel@example.com", result.getEmail());
+                assertEquals(
+                                "$2a$12$encodedPasswordHash",
+                                result.getPasswordHash());
 
-        assertThrows(
-                EmailAlreadyExistsException.class,
-                () -> registerUserService.execute(
-                        "Daniel",
-                        "daniel@example.com",
-                        "SecurePassword123!"));
+                verify(userRepository).existsByEmail("daniel@example.com");
+                verify(passwordEncoder).encode("SecurePassword123!");
+                verify(userRepository).save(any(User.class));
+        }
 
-        verify(userRepository).existsByEmail("daniel@example.com");
-        verify(userRepository, never()).save(any(User.class));
-    }
+        @Test
+        void shouldRejectDuplicateEmail() {
+                when(userRepository.existsByEmail("daniel@example.com"))
+                                .thenReturn(true);
+
+                assertThrows(
+                                EmailAlreadyExistsException.class,
+                                () -> registerUserService.execute(
+                                                "Daniel",
+                                                "daniel@example.com",
+                                                "SecurePassword123!"));
+
+                verify(userRepository).existsByEmail("daniel@example.com");
+                verify(passwordEncoder, never()).encode(anyString());
+                verify(userRepository, never()).save(any(User.class));
+        }
+
+        @Test
+        void shouldRejectPasswordExceeding72Bytes() {
+                String password = "A".repeat(73);
+
+                when(userRepository.existsByEmail("daniel@example.com"))
+                                .thenReturn(false);
+
+                assertThrows(
+                                IllegalArgumentException.class,
+                                () -> registerUserService.execute(
+                                                "Daniel",
+                                                "daniel@example.com",
+                                                password));
+
+                verify(passwordEncoder, never()).encode(anyString());
+                verify(userRepository, never()).save(any(User.class));
+        }
+
+        @Test
+        void shouldRejectMultibytePasswordExceeding72Bytes() {
+                String password = "á".repeat(37);
+
+                assertTrue(
+                                password.getBytes(StandardCharsets.UTF_8).length > 72);
+
+                when(userRepository.existsByEmail("daniel@example.com"))
+                                .thenReturn(false);
+
+                assertThrows(
+                                IllegalArgumentException.class,
+                                () -> registerUserService.execute(
+                                                "Daniel",
+                                                "daniel@example.com",
+                                                password));
+
+                verify(passwordEncoder, never()).encode(anyString());
+                verify(userRepository, never()).save(any(User.class));
+        }
 }

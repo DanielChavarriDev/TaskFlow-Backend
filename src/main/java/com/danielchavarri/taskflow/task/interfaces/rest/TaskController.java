@@ -170,22 +170,26 @@ public class TaskController {
 
         @PatchMapping("/{id}/approve-completion")
         public TaskResponse approveCompletion(
-                        @PathVariable UUID id) {
+                        @PathVariable UUID id,
+                        @Valid @RequestBody AdminTaskCompletionDecisionRequest request) {
 
                 Task task = approveTaskCompletionService.execute(
                                 id,
-                                getAuthenticatedUserId());
+                                getAuthenticatedUserId(),
+                                request.reason());
 
                 return TaskResponse.from(task);
         }
 
         @PatchMapping("/{id}/reject-completion")
         public TaskResponse rejectCompletion(
-                        @PathVariable UUID id) {
+                        @PathVariable UUID id,
+                        @Valid @RequestBody AdminTaskCompletionDecisionRequest request) {
 
                 Task task = rejectTaskCompletionService.execute(
                                 id,
-                                getAuthenticatedUserId());
+                                getAuthenticatedUserId(),
+                                request.reason());
 
                 return TaskResponse.from(task);
         }
