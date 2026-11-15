@@ -82,4 +82,20 @@ public class TaskRepositoryAdapter implements TaskRepository {
                 .map(mapper::toDomain)
                 .toList();
     }
+
+    @Override
+    @Transactional
+    public Optional<Task> findByIdForUpdate(UUID id) {
+        return springDataRepository.findByIdForUpdate(id)
+                .map(mapper::toDomain);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Task> findAllByStatus(TaskStatus status) {
+        return springDataRepository.findAllByStatus(status.name())
+                .stream()
+                .map(mapper::toDomain)
+                .toList();
+    }
 }

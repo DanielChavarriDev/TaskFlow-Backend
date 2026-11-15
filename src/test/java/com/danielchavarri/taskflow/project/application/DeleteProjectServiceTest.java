@@ -13,43 +13,46 @@ import static org.mockito.Mockito.*;
 
 class DeleteProjectServiceTest {
 
-    @Test
-    void shouldDeleteExistingProject() {
-        ProjectRepository repository = mock(ProjectRepository.class);
+        @Test
+        void shouldDeleteExistingProjectOwnedByUser() {
+                ProjectRepository repository = mock(ProjectRepository.class);
+                DeleteProjectService service = new DeleteProjectService(repository);
 
-        DeleteProjectService service = new DeleteProjectService(repository);
+                UUID ownerId = UUID.randomUUID();
 
-        Project project = Project.create(
-                "Proyecto de prueba",
-                "Proyecto para probar la eliminación");
+                Project project = Project.create(
+                                ownerId,
+                                "TaskFlow",
+                                "Proyecto para probar la eliminación");
 
-        UUID id = project.getId();
+                UUID projectId = project.getId();
 
-        when(repository.findById(id))
-                .thenReturn(Optional.of(project));
+                when(repository.findByIdAndOwnerId(projectId, ownerId))
+                                .thenReturn(Optional.of(project));
 
-        service.execute(id);
+                service.execute(projectId, ownerId);
 
-        verify(repository).findById(id);
-        verify(repository).deleteById(id);
-    }
+                verify(repository).findByIdAndOwnerId(projectId, ownerId);
+                verify(repository).deleteByIdAndOwnerId(projectId, ownerId);
+        }
 
-    @Test
-    void shouldThrowExceptionWhenProjectDoesNotExist() {
-        ProjectRepository repository = mock(ProjectRepository.class);
+        @Test
+        void shouldThrowExceptionWhenProjectDoesNotExistOrDoesNotBelongToUser() {
+                ProjectRepository repository = mock(ProjectRepository.class);
+                DeleteProjectService service = new DeleteProjectService(repository);
 
-        DeleteProjectService service = new DeleteProjectService(repository);
+                UUID projectId = UUID.randomUUID();
+                UUID ownerId = UUID.randomUUID();
 
-        UUID id = UUID.randomUUID();
+                when(repository.findByIdAndOwnerId(projectId, ownerId))
+                                .thenReturn(Optional.empty());
 
-        when(repository.findById(id))
-                .thenReturn(Optional.empty());
+                assertThrows(
+                                ProjectNotFoundException.class,
+                                () -> service.execute(projectId, ownerId));
 
-        assertThrows(
-                ProjectNotFoundException.class,
-                () -> service.execute(id));
-
-        verify(repository).findById(id);
-        verify(repository, never()).deleteById(id);
-    }
+                verify(repository).findByIdAndOwnerId(projectId, ownerId);
+                verify(repository, never())
+                                .deleteByIdAndOwnerId(any(UUID.class), any(UUID.class));
+        }
 }

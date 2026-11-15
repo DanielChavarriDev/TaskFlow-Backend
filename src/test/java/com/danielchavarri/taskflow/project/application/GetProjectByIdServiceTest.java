@@ -13,42 +13,48 @@ import static org.mockito.Mockito.*;
 
 class GetProjectByIdServiceTest {
 
-    @Test
-    void shouldReturnProjectWhenItExists() {
-        ProjectRepository repository = mock(ProjectRepository.class);
+        @Test
+        void shouldReturnProjectWhenItExistsAndBelongsToUser() {
+                ProjectRepository repository = mock(ProjectRepository.class);
+                GetProjectByIdService service = new GetProjectByIdService(repository);
 
-        GetProjectByIdService service = new GetProjectByIdService(repository);
+                UUID ownerId = UUID.randomUUID();
 
-        UUID id = UUID.randomUUID();
-        Project project = Project.create(
-                "TaskFlow",
-                "Gestión de proyectos y tareas");
+                Project project = Project.create(
+                                ownerId,
+                                "TaskFlow",
+                                "Gestión de proyectos y tareas");
 
-        when(repository.findById(id))
-                .thenReturn(Optional.of(project));
+                UUID projectId = project.getId();
 
-        Project result = service.execute(id);
+                when(repository.findByIdAndOwnerId(projectId, ownerId))
+                                .thenReturn(Optional.of(project));
 
-        assertNotNull(result);
-        assertEquals("TaskFlow", result.getName());
-        verify(repository).findById(id);
-    }
+                Project result = service.execute(projectId, ownerId);
 
-    @Test
-    void shouldThrowExceptionWhenProjectDoesNotExist() {
-        ProjectRepository repository = mock(ProjectRepository.class);
+                assertNotNull(result);
+                assertEquals(projectId, result.getId());
+                assertEquals(ownerId, result.getOwnerId());
+                assertEquals("TaskFlow", result.getName());
 
-        GetProjectByIdService service = new GetProjectByIdService(repository);
+                verify(repository).findByIdAndOwnerId(projectId, ownerId);
+        }
 
-        UUID id = UUID.randomUUID();
+        @Test
+        void shouldThrowExceptionWhenProjectDoesNotExistOrDoesNotBelongToUser() {
+                ProjectRepository repository = mock(ProjectRepository.class);
+                GetProjectByIdService service = new GetProjectByIdService(repository);
 
-        when(repository.findById(id))
-                .thenReturn(Optional.empty());
+                UUID projectId = UUID.randomUUID();
+                UUID ownerId = UUID.randomUUID();
 
-        assertThrows(
-                ProjectNotFoundException.class,
-                () -> service.execute(id));
+                when(repository.findByIdAndOwnerId(projectId, ownerId))
+                                .thenReturn(Optional.empty());
 
-        verify(repository).findById(id);
-    }
+                assertThrows(
+                                ProjectNotFoundException.class,
+                                () -> service.execute(projectId, ownerId));
+
+                verify(repository).findByIdAndOwnerId(projectId, ownerId);
+        }
 }

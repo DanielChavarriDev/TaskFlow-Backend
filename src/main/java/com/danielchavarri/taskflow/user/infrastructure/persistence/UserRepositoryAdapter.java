@@ -4,7 +4,7 @@ package com.danielchavarri.taskflow.user.infrastructure.persistence;
 import com.danielchavarri.taskflow.user.domain.model.User;
 import com.danielchavarri.taskflow.user.domain.port.UserRepository;
 import org.springframework.stereotype.Repository;
-
+import java.util.UUID;
 import java.util.Optional;
 
 @Repository
@@ -34,5 +34,11 @@ public class UserRepositoryAdapter implements UserRepository {
     @Override
     public boolean existsByEmail(String email) {
         return springDataRepository.existsByEmail(email);
+    }
+
+    @Override
+    public Optional<User> findById(UUID id) {
+        return springDataRepository.findById(id)
+                .map(UserPersistenceMapper::toDomain);
     }
 }

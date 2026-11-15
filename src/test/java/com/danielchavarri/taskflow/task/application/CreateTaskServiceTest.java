@@ -7,6 +7,7 @@ import com.danielchavarri.taskflow.task.domain.model.Task;
 import com.danielchavarri.taskflow.task.domain.model.TaskPriority;
 import com.danielchavarri.taskflow.task.domain.model.TaskStatus;
 import com.danielchavarri.taskflow.task.domain.port.TaskRepository;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -20,79 +21,88 @@ import static org.mockito.Mockito.*;
 
 class CreateTaskServiceTest {
 
-    private TaskRepository taskRepository;
-    private ProjectRepository projectRepository;
-    private CreateTaskService createTaskService;
+        private TaskRepository taskRepository;
+        private ProjectRepository projectRepository;
+        private CreateTaskService createTaskService;
 
-    private UUID projectId;
+        private UUID projectId;
+        private UUID ownerId;
 
-    @BeforeEach
-    void setUp() {
-        taskRepository = mock(TaskRepository.class);
-        projectRepository = mock(ProjectRepository.class);
+        @BeforeEach
+        void setUp() {
+                taskRepository = mock(TaskRepository.class);
+                projectRepository = mock(ProjectRepository.class);
 
-        createTaskService = new CreateTaskService(
-                taskRepository,
-                projectRepository);
+                createTaskService = new CreateTaskService(
+                                taskRepository,
+                                projectRepository);
 
-        projectId = UUID.randomUUID();
-    }
+                projectId = UUID.randomUUID();
+                ownerId = UUID.randomUUID();
+        }
 
-    @Test
-    void shouldCreateTaskWhenProjectExists() {
-        Project project = Project.create(
-                "Proyecto de prueba",
-                "Descripción del proyecto");
+        @Test
+        void shouldCreateTaskWhenProjectBelongsToUser() {
 
-        when(projectRepository.findById(projectId))
-                .thenReturn(Optional.of(project));
+                Project project = Project.reconstitute(
+                                projectId,
+                                ownerId,
+                                "Proyecto de prueba",
+                                "Descripción del proyecto",
+                                java.time.Instant.now());
 
-        when(taskRepository.save(any(Task.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+                when(projectRepository.findByIdAndOwnerId(projectId, ownerId))
+                                .thenReturn(Optional.of(project));
 
-        Task result = createTaskService.execute(
-                projectId,
-                "Implementar pruebas",
-                "Crear pruebas unitarias",
-                TaskPriority.HIGH,
-                LocalDate.of(2026, 10, 30));
+                when(taskRepository.save(any(Task.class)))
+                                .thenAnswer(invocation -> invocation.getArgument(0));
 
-        assertNotNull(result);
-        assertNotNull(result.getId());
-        assertEquals(projectId, result.getProjectId());
-        assertEquals("Implementar pruebas", result.getTitle());
-        assertEquals(
-                "Crear pruebas unitarias",
-                result.getDescription());
-        assertEquals(TaskPriority.HIGH, result.getPriority());
-        assertEquals(TaskStatus.PENDING, result.getStatus());
-        assertEquals(
-                LocalDate.of(2026, 10, 30),
-                result.getDueDate());
+                LocalDate dueDate = LocalDate.of(2026, 11, 30);
 
-        verify(projectRepository).findById(projectId);
-        verify(taskRepository).save(any(Task.class));
-    }
+                Task result = createTaskService.execute(
+                                projectId,
+                                ownerId,
+                                "Implementar pruebas",
+                                "Crear pruebas unitarias",
+                                TaskPriority.HIGH,
+                                dueDate);
 
-    @Test
-    void shouldRejectCreationWhenProjectDoesNotExist() {
-        when(projectRepository.findById(projectId))
-                .thenReturn(Optional.empty());
+                assertNotNull(result);
+                assertNotNull(result.getId());
+                assertEquals(projectId, result.getProjectId());
+                assertEquals("Implementar pruebas", result.getTitle());
+                assertEquals("Crear pruebas unitarias", result.getDescription());
+                assertEquals(TaskPriority.HIGH, result.getPriority());
+                assertEquals(TaskStatus.PENDING, result.getStatus());
+                assertEquals(dueDate, result.getDueDate());
 
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
-                () -> createTaskService.execute(
-                        projectId,
-                        "Implementar pruebas",
-                        "Crear pruebas unitarias",
-                        TaskPriority.HIGH,
-                        null));
+                verify(projectRepository)
+                                .findByIdAndOwnerId(projectId, ownerId);
 
-        assertTrue(
-                exception.getMessage().contains(
-                        "No existe el proyecto con ID: " + projectId));
+                verify(taskRepository).save(any(Task.class));
+        }
 
-        verify(projectRepository).findById(projectId);
-        verify(taskRepository, never()).save(any(Task.class));
-    }
+        @Test
+        void shouldRejectCreationWhenProjectDoesNotExistOrBelongToUser() {
+
+                when(projectRepository.findByIdAndOwnerId(projectId, ownerId))
+                                .thenReturn(Optional.empty());
+
+                IllegalArgumentException exception = assertThrows(
+                                IllegalArgumentException.class,
+                                () -> createTaskService.execute(
+                                                projectId,
+                                                ownerId,
+                                                "Implementar pruebas",
+                                                "Crear pruebas unitarias",
+                                                TaskPriority.HIGH,
+                                                null));
+
+                assertTrue(exception.getMessage().contains(projectId.toString()));
+
+                verify(projectRepository)
+                                .findByIdAndOwnerId(projectId, ownerId);
+
+                verify(taskRepository, never()).save(any(Task.class));
+        }
 }

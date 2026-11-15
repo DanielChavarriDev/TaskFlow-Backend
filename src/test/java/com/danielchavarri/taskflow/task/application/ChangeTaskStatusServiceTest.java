@@ -5,9 +5,11 @@ import com.danielchavarri.taskflow.task.domain.model.Task;
 import com.danielchavarri.taskflow.task.domain.model.TaskPriority;
 import com.danielchavarri.taskflow.task.domain.model.TaskStatus;
 import com.danielchavarri.taskflow.task.domain.port.TaskRepository;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -17,83 +19,153 @@ import static org.mockito.Mockito.*;
 
 class ChangeTaskStatusServiceTest {
 
-    private TaskRepository taskRepository;
-    private ChangeTaskStatusService changeTaskStatusService;
+        private TaskRepository taskRepository;
+        private ChangeTaskStatusService changeTaskStatusService;
 
-    private UUID taskId;
-    private UUID projectId;
+        private UUID taskId;
+        private UUID projectId;
+        private UUID ownerId;
 
-    @BeforeEach
-    void setUp() {
-        taskRepository = mock(TaskRepository.class);
-        changeTaskStatusService = new ChangeTaskStatusService(taskRepository);
+        @BeforeEach
+        void setUp() {
+                taskRepository = mock(TaskRepository.class);
+                changeTaskStatusService = new ChangeTaskStatusService(taskRepository);
 
-        taskId = UUID.randomUUID();
-        projectId = UUID.randomUUID();
-    }
+                taskId = UUID.randomUUID();
+                projectId = UUID.randomUUID();
+                ownerId = UUID.randomUUID();
+        }
 
-    @Test
-    void shouldChangeTaskStatusWhenTaskExists() {
-        Task task = Task.create(
-                projectId,
-                "Implementar pruebas",
-                "Validar cambio de estado",
-                TaskPriority.HIGH,
-                null);
+        private Task createTask(TaskStatus status) {
+                return Task.reconstitute(
+                                taskId,
+                                projectId,
+                                "Tarea de prueba",
+                                "Descripción de prueba",
+                                status,
+                                TaskPriority.HIGH,
+                                null,
+                                Instant.now());
+        }
 
-        when(taskRepository.findById(taskId))
-                .thenReturn(Optional.of(task));
+        @Test
+        void shouldChangePendingTaskToInProgress() {
 
-        when(taskRepository.save(any(Task.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+                Task task = createTask(TaskStatus.PENDING);
 
-        Task result = changeTaskStatusService.execute(
-                taskId,
-                TaskStatus.IN_PROGRESS);
+                when(taskRepository.findByIdAndOwnerId(taskId, ownerId))
+                                .thenReturn(Optional.of(task));
 
-        assertNotNull(result);
-        assertEquals(TaskStatus.IN_PROGRESS, result.getStatus());
+                when(taskRepository.save(any(Task.class)))
+                                .thenAnswer(invocation -> invocation.getArgument(0));
 
-        verify(taskRepository).findById(taskId);
-        verify(taskRepository).save(task);
-    }
+                Task result = changeTaskStatusService.execute(
+                                taskId,
+                                ownerId,
+                                TaskStatus.IN_PROGRESS);
 
-    @Test
-    void shouldChangeTaskStatusToCompleted() {
-        Task task = Task.create(
-                projectId,
-                "Completar módulo",
-                null,
-                TaskPriority.MEDIUM,
-                null);
+                assertEquals(TaskStatus.IN_PROGRESS, result.getStatus());
 
-        when(taskRepository.findById(taskId))
-                .thenReturn(Optional.of(task));
+                verify(taskRepository)
+                                .findByIdAndOwnerId(taskId, ownerId);
 
-        when(taskRepository.save(any(Task.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+                verify(taskRepository).save(task);
+        }
 
-        Task result = changeTaskStatusService.execute(
-                taskId,
-                TaskStatus.COMPLETED);
+        @Test
+        void shouldChangeInProgressTaskToInReview() {
 
-        assertEquals(TaskStatus.COMPLETED, result.getStatus());
+                Task task = createTask(TaskStatus.IN_PROGRESS);
 
-        verify(taskRepository).save(task);
-    }
+                when(taskRepository.findByIdAndOwnerId(taskId, ownerId))
+                                .thenReturn(Optional.of(task));
 
-    @Test
-    void shouldThrowExceptionWhenTaskDoesNotExist() {
-        when(taskRepository.findById(taskId))
-                .thenReturn(Optional.empty());
+                when(taskRepository.save(any(Task.class)))
+                                .thenAnswer(invocation -> invocation.getArgument(0));
 
-        assertThrows(
-                TaskNotFoundException.class,
-                () -> changeTaskStatusService.execute(
-                        taskId,
-                        TaskStatus.IN_PROGRESS));
+                Task result = changeTaskStatusService.execute(
+                                taskId,
+                                ownerId,
+                                TaskStatus.IN_REVIEW);
 
-        verify(taskRepository).findById(taskId);
-        verify(taskRepository, never()).save(any(Task.class));
-    }
+                assertEquals(TaskStatus.IN_REVIEW, result.getStatus());
+
+                verify(taskRepository).save(task);
+        }
+
+        @Test
+        void shouldReturnTaskToInProgressWhenReviewIsRejected() {
+
+                Task task = createTask(TaskStatus.IN_REVIEW);
+
+                when(taskRepository.findByIdAndOwnerId(taskId, ownerId))
+                                .thenReturn(Optional.of(task));
+
+                when(taskRepository.save(any(Task.class)))
+                                .thenAnswer(invocation -> invocation.getArgument(0));
+
+                Task result = changeTaskStatusService.execute(
+                                taskId,
+                                ownerId,
+                                TaskStatus.IN_PROGRESS);
+
+                assertEquals(TaskStatus.IN_PROGRESS, result.getStatus());
+
+                verify(taskRepository).save(task);
+        }
+
+        @Test
+        void shouldThrowExceptionWhenTaskDoesNotExistOrBelongToUser() {
+
+                when(taskRepository.findByIdAndOwnerId(taskId, ownerId))
+                                .thenReturn(Optional.empty());
+
+                assertThrows(
+                                TaskNotFoundException.class,
+                                () -> changeTaskStatusService.execute(
+                                                taskId,
+                                                ownerId,
+                                                TaskStatus.IN_PROGRESS));
+
+                verify(taskRepository)
+                                .findByIdAndOwnerId(taskId, ownerId);
+
+                verify(taskRepository, never()).save(any(Task.class));
+        }
+
+        @Test
+        void shouldNotAllowDirectTransitionToCompleted() {
+
+                Task task = createTask(TaskStatus.IN_PROGRESS);
+
+                when(taskRepository.findByIdAndOwnerId(taskId, ownerId))
+                                .thenReturn(Optional.of(task));
+
+                assertThrows(
+                                IllegalArgumentException.class,
+                                () -> changeTaskStatusService.execute(
+                                                taskId,
+                                                ownerId,
+                                                TaskStatus.COMPLETED));
+
+                verify(taskRepository, never()).save(any(Task.class));
+        }
+
+        @Test
+        void shouldNotAllowTransitionToPending() {
+
+                Task task = createTask(TaskStatus.IN_PROGRESS);
+
+                when(taskRepository.findByIdAndOwnerId(taskId, ownerId))
+                                .thenReturn(Optional.of(task));
+
+                assertThrows(
+                                IllegalArgumentException.class,
+                                () -> changeTaskStatusService.execute(
+                                                taskId,
+                                                ownerId,
+                                                TaskStatus.PENDING));
+
+                verify(taskRepository, never()).save(any(Task.class));
+        }
 }

@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import com.danielchavarri.taskflow.user.application.EmailAlreadyExistsException;
 import com.danielchavarri.taskflow.user.application.InvalidCredentialsException;
+import com.danielchavarri.taskflow.task.domain.model.TaskStatusConflictException;
+import org.springframework.security.access.AccessDeniedException;
 import java.net.URI;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -136,5 +138,25 @@ public class GlobalExceptionHandler {
                                 HttpStatus.UNAUTHORIZED,
                                 "Invalid credentials",
                                 exception.getMessage());
+        }
+
+        @ExceptionHandler(TaskStatusConflictException.class)
+        public ProblemDetail handleTaskStatusConflict(
+                        TaskStatusConflictException exception) {
+
+                return createProblem(
+                                HttpStatus.CONFLICT,
+                                "Task status conflict",
+                                exception.getMessage());
+        }
+
+        @ExceptionHandler(AccessDeniedException.class)
+        public ProblemDetail handleAccessDenied(
+                        AccessDeniedException exception) {
+
+                return createProblem(
+                                HttpStatus.FORBIDDEN,
+                                "Access denied",
+                                "No tienes permisos para realizar esta operación.");
         }
 }

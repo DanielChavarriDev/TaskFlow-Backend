@@ -23,7 +23,28 @@ public class ChangeTaskStatusService {
         Task task = taskRepository.findByIdAndOwnerId(id, ownerId)
                 .orElseThrow(() -> new TaskNotFoundException(id));
 
-        task.changeStatus(status);
+        switch (status) {
+            case PENDING ->
+                throw new IllegalArgumentException(
+                        "No se puede cambiar una tarea a pendiente mediante esta operación.");
+
+            case IN_PROGRESS -> {
+                if (task.getStatus() == TaskStatus.PENDING) {
+                    task.start();
+                } else if (task.getStatus() == TaskStatus.IN_REVIEW) {
+                    task.rejectCompletion();
+                } else {
+                    throw new IllegalStateException(
+                            "La tarea no puede volver a en ejecución desde su estado actual.");
+                }
+            }
+
+            case IN_REVIEW -> task.requestCompletion();
+
+            case COMPLETED ->
+                throw new IllegalArgumentException(
+                        "La finalización debe ser aprobada por el propietario del proyecto.");
+        }
 
         return taskRepository.save(task);
     }

@@ -88,8 +88,40 @@ public class Task {
         this.dueDate = dueDate;
     }
 
-    public void changeStatus(TaskStatus status) {
-        this.status = Objects.requireNonNull(status);
+    public void start() {
+        if (status != TaskStatus.PENDING) {
+            throw new TaskStatusConflictException(
+                    "Solo se puede iniciar una tarea pendiente.");
+        }
+
+        this.status = TaskStatus.IN_PROGRESS;
+    }
+
+    public void requestCompletion() {
+        if (status != TaskStatus.IN_PROGRESS) {
+            throw new TaskStatusConflictException(
+                    "Solo se puede solicitar la finalización de una tarea en ejecución.");
+        }
+
+        this.status = TaskStatus.IN_REVIEW;
+    }
+
+    public void approveCompletion() {
+        if (status != TaskStatus.IN_REVIEW) {
+            throw new TaskStatusConflictException(
+                    "Solo se puede aprobar una tarea pendiente de revisión.");
+        }
+
+        this.status = TaskStatus.COMPLETED;
+    }
+
+    public void rejectCompletion() {
+        if (status != TaskStatus.IN_REVIEW) {
+            throw new TaskStatusConflictException(
+                    "Solo se puede rechazar una tarea pendiente de revisión.");
+        }
+
+        this.status = TaskStatus.IN_PROGRESS;
     }
 
     private static String validateTitle(String title) {
@@ -121,6 +153,41 @@ public class Task {
         }
 
         return normalized;
+    }
+
+    public void applyAdministrativeIntervention(TaskStatus newStatus) {
+        Objects.requireNonNull(
+                newStatus,
+                "El nuevo estado es obligatorio.");
+
+        if (this.status == newStatus) {
+            throw new TaskStatusConflictException(
+                    "La tarea ya se encuentra en el estado solicitado.");
+        }
+
+        boolean allowed = switch (this.status) {
+            case PENDING ->
+                newStatus == TaskStatus.IN_PROGRESS;
+
+            case IN_PROGRESS ->
+                newStatus == TaskStatus.PENDING
+                        || newStatus == TaskStatus.IN_REVIEW;
+
+            case IN_REVIEW ->
+                newStatus == TaskStatus.IN_PROGRESS
+                        || newStatus == TaskStatus.COMPLETED;
+
+            case COMPLETED ->
+                newStatus == TaskStatus.IN_PROGRESS;
+        };
+
+        if (!allowed) {
+            throw new TaskStatusConflictException(
+                    "La intervención administrativa no permite cambiar de "
+                            + this.status + " a " + newStatus + ".");
+        }
+
+        this.status = newStatus;
     }
 
     public UUID getId() {

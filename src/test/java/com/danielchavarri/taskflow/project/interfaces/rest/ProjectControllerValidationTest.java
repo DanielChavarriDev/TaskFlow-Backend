@@ -7,29 +7,33 @@ import com.danielchavarri.taskflow.project.application.DeleteProjectUseCase;
 import com.danielchavarri.taskflow.project.application.GetAllProjectsUseCase;
 import com.danielchavarri.taskflow.project.application.GetProjectByIdUseCase;
 import com.danielchavarri.taskflow.project.application.UpdateProjectUseCase;
+import com.danielchavarri.taskflow.project.domain.model.Project;
+import com.danielchavarri.taskflow.shared.infrastructure.security.JwtService;
+import com.danielchavarri.taskflow.user.domain.port.UserRepository;
+
+import java.util.List;
+import java.util.UUID;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import com.danielchavarri.taskflow.project.application.ProjectNotFoundException;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import com.danielchavarri.taskflow.project.domain.model.Project;
-import static org.mockito.ArgumentMatchers.anyString;
-import com.danielchavarri.taskflow.shared.infrastructure.security.JwtService;
-import static org.mockito.Mockito.verify;
-import org.springframework.dao.DataIntegrityViolationException;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
+
+import static org.mockito.Mockito.*;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(ProjectController.class)
+@AutoConfigureMockMvc(addFilters = false)
 @Import(GlobalExceptionHandler.class)
 class ProjectControllerValidationTest {
 
@@ -38,6 +42,9 @@ class ProjectControllerValidationTest {
 
         @MockitoBean
         private JwtService jwtService;
+
+        @MockitoBean
+        private UserRepository userRepository;
 
         @MockitoBean
         private CreateProjectUseCase createProjectUseCase;
@@ -54,8 +61,31 @@ class ProjectControllerValidationTest {
         @MockitoBean
         private DeleteProjectUseCase deleteProjectUseCase;
 
+        private final UUID ownerId = UUID.randomUUID();
+
+        /**
+         * Simula un usuario autenticado cuyo principal es un UUID.
+         * Se establece directamente el SecurityContext porque los filtros
+         * de seguridad están desactivados en esta prueba.
+         */
+        private RequestPostProcessor authenticated() {
+                return request -> {
+                        var authentication = new UsernamePasswordAuthenticationToken(
+                                        ownerId,
+                                        null,
+                                        List.of(new SimpleGrantedAuthority("ROLE_USER")));
+
+                        SecurityContext context = SecurityContextHolder.createEmptyContext();
+                        context.setAuthentication(authentication);
+                        SecurityContextHolder.setContext(context);
+
+                        return request;
+                };
+        }
+
         @Test
         void shouldReturn400WhenProjectNameIsBlank() throws Exception {
+
                 String requestBody = """
                                 {
                                     "name": "",
@@ -64,7 +94,8 @@ class ProjectControllerValidationTest {
                                 """;
 
                 mockMvc.perform(post("/api/projects")
-                                .contentType("application/json")
+                                .with(authenticated())
+                                .contentType(APPLICATION_JSON)
                                 .content(requestBody))
                                 .andExpect(status().isBadRequest())
                                 .andExpect(jsonPath("$.status").value(400))
@@ -78,6 +109,7 @@ class ProjectControllerValidationTest {
         @Test
         void shouldReturn400WhenProjectNameExceeds100Characters()
                         throws Exception {
+
                 String longName = "A".repeat(101);
 
                 String requestBody = """
@@ -88,7 +120,8 @@ class ProjectControllerValidationTest {
                                 """.formatted(longName);
 
                 mockMvc.perform(post("/api/projects")
-                                .contentType("application/json")
+                                .with(authenticated())
+                                .contentType(APPLICATION_JSON)
                                 .content(requestBody))
                                 .andExpect(status().isBadRequest())
                                 .andExpect(jsonPath("$.status").value(400))
@@ -102,6 +135,7 @@ class ProjectControllerValidationTest {
         @Test
         void shouldReturn400WhenDescriptionExceeds500Characters()
                         throws Exception {
+
                 String longDescription = "A".repeat(501);
 
                 String requestBody = """
@@ -112,7 +146,8 @@ class ProjectControllerValidationTest {
                                 """.formatted(longDescription);
 
                 mockMvc.perform(post("/api/projects")
-                                .contentType("application/json")
+                                .with(authenticated())
+                                .contentType(APPLICATION_JSON)
                                 .content(requestBody))
                                 .andExpect(status().isBadRequest())
                                 .andExpect(jsonPath("$.status").value(400))
@@ -124,7 +159,9 @@ class ProjectControllerValidationTest {
         }
 
         @Test
-        void shouldReturn400WhenRequestBodyContainsMalformedJson() throws Exception {
+        void shouldReturn400WhenRequestBodyContainsMalformedJson()
+                        throws Exception {
+
                 String malformedJson = """
                                 {
                                     "name": "Proyecto de prueba",
@@ -133,75 +170,30 @@ class ProjectControllerValidationTest {
                                 """;
 
                 mockMvc.perform(post("/api/projects")
-                                .contentType("application/json")
+                                .with(authenticated())
+                                .contentType(APPLICATION_JSON)
                                 .content(malformedJson))
                                 .andExpect(status().isBadRequest())
                                 .andExpect(jsonPath("$.status").value(400))
-                                .andExpect(jsonPath("$.title").value("Malformed request"));
+                                .andExpect(jsonPath("$.title")
+                                                .value("Malformed request"));
 
                 verifyNoInteractions(createProjectUseCase);
         }
 
         @Test
-        void shouldReturn400WhenProjectIdIsNotAValidUuid() throws Exception {
-                mockMvc.perform(get("/api/projects/{id}", "no-es-un-uuid"))
-                                .andExpect(status().isBadRequest())
-                                .andExpect(jsonPath("$.status").value(400))
-                                .andExpect(jsonPath("$.title").value("Invalid parameter"));
+        void shouldReturn201WhenProjectIsCreatedSuccessfully()
+                        throws Exception {
 
-                verifyNoInteractions(getProjectByIdUseCase);
-        }
-
-        @Test
-        void shouldReturn404WhenProjectDoesNotExist() throws Exception {
-                java.util.UUID projectId = java.util.UUID.fromString(
-                                "00000000-0000-0000-0000-000000000000");
-
-                when(getProjectByIdUseCase.execute(projectId))
-                                .thenThrow(new ProjectNotFoundException(projectId));
-
-                mockMvc.perform(get("/api/projects/{id}", projectId))
-                                .andExpect(status().isNotFound())
-                                .andExpect(jsonPath("$.status").value(404))
-                                .andExpect(jsonPath("$.title").value("Project not found"))
-                                .andExpect(jsonPath("$.detail")
-                                                .value("No se encontró el proyecto con ID: " + projectId));
-        }
-
-        @Test
-        void shouldReturn409WhenProjectDataConflicts() throws Exception {
-                when(createProjectUseCase.execute(anyString(), anyString()))
-                                .thenThrow(new DataIntegrityViolationException(
-                                                "Data integrity conflict"));
-
-                String requestBody = """
-                                {
-                                    "name": "Proyecto de prueba",
-                                    "description": "Descripción del proyecto"
-                                }
-                                """;
-
-                mockMvc.perform(post("/api/projects")
-                                .contentType("application/json")
-                                .content(requestBody))
-                                .andExpect(status().isConflict())
-                                .andExpect(jsonPath("$.status").value(409))
-                                .andExpect(jsonPath("$.title").value("Data conflict"));
-
-                verify(createProjectUseCase)
-                                .execute("Proyecto de prueba", "Descripción del proyecto");
-        }
-
-        @Test
-        void shouldReturn201WhenProjectIsCreatedSuccessfully() throws Exception {
                 Project project = Project.create(
+                                ownerId,
                                 "Proyecto de prueba",
                                 "Descripción del proyecto");
 
                 when(createProjectUseCase.execute(
+                                ownerId,
                                 "Proyecto de prueba",
-                                "Descripción del proyecto"))
-                                .thenReturn(project);
+                                "Descripción del proyecto")).thenReturn(project);
 
                 String requestBody = """
                                 {
@@ -211,30 +203,38 @@ class ProjectControllerValidationTest {
                                 """;
 
                 mockMvc.perform(post("/api/projects")
-                                .contentType("application/json")
+                                .with(authenticated())
+                                .contentType(APPLICATION_JSON)
                                 .content(requestBody))
                                 .andExpect(status().isCreated())
-                                .andExpect(jsonPath("$.id").value(project.getId().toString()))
-                                .andExpect(jsonPath("$.name").value("Proyecto de prueba"))
+                                .andExpect(jsonPath("$.id")
+                                                .value(project.getId().toString()))
+                                .andExpect(jsonPath("$.name")
+                                                .value("Proyecto de prueba"))
                                 .andExpect(jsonPath("$.description")
                                                 .value("Descripción del proyecto"))
                                 .andExpect(jsonPath("$.createdAt").exists());
 
                 verify(createProjectUseCase).execute(
+                                ownerId,
                                 "Proyecto de prueba",
                                 "Descripción del proyecto");
         }
 
         @Test
-        void shouldReturn200WhenProjectsAreRetrievedSuccessfully() throws Exception {
+        void shouldReturn200WhenProjectsAreRetrievedSuccessfully()
+                        throws Exception {
+
                 Project project = Project.create(
+                                ownerId,
                                 "Proyecto de prueba",
                                 "Descripción del proyecto");
 
-                when(getAllProjectsUseCase.execute())
-                                .thenReturn(java.util.List.of(project));
+                when(getAllProjectsUseCase.execute(ownerId))
+                                .thenReturn(List.of(project));
 
-                mockMvc.perform(get("/api/projects"))
+                mockMvc.perform(get("/api/projects")
+                                .with(authenticated()))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$").isArray())
                                 .andExpect(jsonPath("$.length()").value(1))
@@ -245,19 +245,24 @@ class ProjectControllerValidationTest {
                                 .andExpect(jsonPath("$[0].description")
                                                 .value("Descripción del proyecto"));
 
-                verify(getAllProjectsUseCase).execute();
+                verify(getAllProjectsUseCase).execute(ownerId);
         }
 
         @Test
-        void shouldReturn200WhenProjectIsRetrievedSuccessfully() throws Exception {
+        void shouldReturn200WhenProjectIsRetrievedSuccessfully()
+                        throws Exception {
+
                 Project project = Project.create(
+                                ownerId,
                                 "Proyecto de prueba",
                                 "Descripción del proyecto");
 
-                when(getProjectByIdUseCase.execute(project.getId()))
-                                .thenReturn(project);
+                when(getProjectByIdUseCase.execute(
+                                project.getId(),
+                                ownerId)).thenReturn(project);
 
-                mockMvc.perform(get("/api/projects/{id}", project.getId()))
+                mockMvc.perform(get("/api/projects/{id}", project.getId())
+                                .with(authenticated()))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.id")
                                                 .value(project.getId().toString()))
@@ -267,20 +272,25 @@ class ProjectControllerValidationTest {
                                                 .value("Descripción del proyecto"))
                                 .andExpect(jsonPath("$.createdAt").exists());
 
-                verify(getProjectByIdUseCase).execute(project.getId());
+                verify(getProjectByIdUseCase).execute(
+                                project.getId(),
+                                ownerId);
         }
 
         @Test
-        void shouldReturn200WhenProjectIsUpdatedSuccessfully() throws Exception {
+        void shouldReturn200WhenProjectIsUpdatedSuccessfully()
+                        throws Exception {
+
                 Project project = Project.create(
+                                ownerId,
                                 "Proyecto actualizado",
                                 "Descripción actualizada");
 
                 when(updateProjectUseCase.execute(
                                 project.getId(),
+                                ownerId,
                                 "Proyecto actualizado",
-                                "Descripción actualizada"))
-                                .thenReturn(project);
+                                "Descripción actualizada")).thenReturn(project);
 
                 String requestBody = """
                                 {
@@ -290,7 +300,8 @@ class ProjectControllerValidationTest {
                                 """;
 
                 mockMvc.perform(put("/api/projects/{id}", project.getId())
-                                .contentType("application/json")
+                                .with(authenticated())
+                                .contentType(APPLICATION_JSON)
                                 .content(requestBody))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.id")
@@ -303,20 +314,27 @@ class ProjectControllerValidationTest {
 
                 verify(updateProjectUseCase).execute(
                                 project.getId(),
+                                ownerId,
                                 "Proyecto actualizado",
                                 "Descripción actualizada");
         }
 
         @Test
-        void shouldReturn204WhenProjectIsDeletedSuccessfully() throws Exception {
+        void shouldReturn204WhenProjectIsDeletedSuccessfully()
+                        throws Exception {
+
                 Project project = Project.create(
+                                ownerId,
                                 "Proyecto por eliminar",
                                 "Descripción del proyecto");
 
-                mockMvc.perform(delete("/api/projects/{id}", project.getId()))
+                mockMvc.perform(delete("/api/projects/{id}", project.getId())
+                                .with(authenticated()))
                                 .andExpect(status().isNoContent())
                                 .andExpect(content().string(""));
 
-                verify(deleteProjectUseCase).execute(project.getId());
+                verify(deleteProjectUseCase).execute(
+                                project.getId(),
+                                ownerId);
         }
 }

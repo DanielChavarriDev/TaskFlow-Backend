@@ -11,20 +11,24 @@ import java.util.UUID;
 
 public interface TaskRepository {
 
-    Task save(Task task);
+        Task save(Task task);
 
-    Optional<Task> findByIdAndOwnerId(UUID id, UUID ownerId);
+        Optional<Task> findByIdAndOwnerId(UUID id, UUID ownerId);
 
-    List<Task> findAllByOwnerId(UUID ownerId);
+        List<Task> findAllByOwnerId(UUID ownerId);
 
-    List<Task> findByProjectIdAndOwnerId(
-            UUID projectId,
-            UUID ownerId);
+        List<Task> findByProjectIdAndOwnerId(
+                        UUID projectId,
+                        UUID ownerId);
 
-    int deleteByIdAndOwnerId(UUID id, UUID ownerId);
+        int deleteByIdAndOwnerId(UUID id, UUID ownerId);
 
-    List<Task> findByFiltersAndOwnerId(
-            UUID ownerId,
-            TaskStatus status,
-            TaskPriority priority);
+        List<Task> findByFiltersAndOwnerId(
+                        UUID ownerId,
+                        TaskStatus status,
+                        TaskPriority priority);
+
+        Optional<Task> findByIdForUpdate(UUID id);
+
+        List<Task> findAllByStatus(TaskStatus status);
 }

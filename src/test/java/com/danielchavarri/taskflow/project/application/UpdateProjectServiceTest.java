@@ -14,57 +14,64 @@ import static org.mockito.Mockito.*;
 
 class UpdateProjectServiceTest {
 
-    @Test
-    void shouldUpdateExistingProject() {
-        ProjectRepository repository = mock(ProjectRepository.class);
+        @Test
+        void shouldUpdateExistingProjectOwnedByUser() {
+                ProjectRepository repository = mock(ProjectRepository.class);
+                UpdateProjectService service = new UpdateProjectService(repository);
 
-        UpdateProjectService service = new UpdateProjectService(repository);
+                UUID ownerId = UUID.randomUUID();
 
-        Project project = Project.create(
-                "TaskFlow",
-                "Descripción inicial");
+                Project project = Project.create(
+                                ownerId,
+                                "TaskFlow",
+                                "Descripción inicial");
 
-        UUID id = project.getId();
+                UUID projectId = project.getId();
 
-        when(repository.findById(id))
-                .thenReturn(Optional.of(project));
+                when(repository.findByIdAndOwnerId(projectId, ownerId))
+                                .thenReturn(Optional.of(project));
 
-        when(repository.save(any(Project.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+                when(repository.save(any(Project.class)))
+                                .thenAnswer(invocation -> invocation.getArgument(0));
 
-        Project result = service.execute(
-                id,
-                "TaskFlow actualizado",
-                "Descripción actualizada");
+                Project result = service.execute(
+                                projectId,
+                                ownerId,
+                                "TaskFlow actualizado",
+                                "Descripción actualizada");
 
-        assertEquals("TaskFlow actualizado", result.getName());
-        assertEquals(
-                "Descripción actualizada",
-                result.getDescription());
+                assertNotNull(result);
+                assertEquals(projectId, result.getId());
+                assertEquals(ownerId, result.getOwnerId());
+                assertEquals("TaskFlow actualizado", result.getName());
+                assertEquals(
+                                "Descripción actualizada",
+                                result.getDescription());
 
-        verify(repository).findById(id);
-        verify(repository).save(project);
-    }
+                verify(repository).findByIdAndOwnerId(projectId, ownerId);
+                verify(repository).save(project);
+        }
 
-    @Test
-    void shouldThrowExceptionWhenProjectDoesNotExist() {
-        ProjectRepository repository = mock(ProjectRepository.class);
+        @Test
+        void shouldThrowExceptionWhenProjectDoesNotExistOrDoesNotBelongToUser() {
+                ProjectRepository repository = mock(ProjectRepository.class);
+                UpdateProjectService service = new UpdateProjectService(repository);
 
-        UpdateProjectService service = new UpdateProjectService(repository);
+                UUID projectId = UUID.randomUUID();
+                UUID ownerId = UUID.randomUUID();
 
-        UUID id = UUID.randomUUID();
+                when(repository.findByIdAndOwnerId(projectId, ownerId))
+                                .thenReturn(Optional.empty());
 
-        when(repository.findById(id))
-                .thenReturn(Optional.empty());
+                assertThrows(
+                                ProjectNotFoundException.class,
+                                () -> service.execute(
+                                                projectId,
+                                                ownerId,
+                                                "TaskFlow actualizado",
+                                                "Descripción actualizada"));
 
-        assertThrows(
-                ProjectNotFoundException.class,
-                () -> service.execute(
-                        id,
-                        "TaskFlow actualizado",
-                        "Descripción actualizada"));
-
-        verify(repository).findById(id);
-        verify(repository, never()).save(any(Project.class));
-    }
+                verify(repository).findByIdAndOwnerId(projectId, ownerId);
+                verify(repository, never()).save(any(Project.class));
+        }
 }

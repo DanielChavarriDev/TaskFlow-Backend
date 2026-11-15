@@ -12,4 +12,6 @@ public interface SpringDataUserRepository
     Optional<UserJpaEntity> findByEmail(String email);
 
     boolean existsByEmail(String email);
+
+    Optional<UserJpaEntity> findById(UUID id);
 }

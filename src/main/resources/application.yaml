@@ -26,3 +26,9 @@ server:
 taskflow:
   jwt:
     secret: ${TASKFLOW_JWT_SECRET}
+
+  admin:
+    provision-enabled: ${TASKFLOW_ADMIN_PROVISION_ENABLED:false}
+    email: ${TASKFLOW_ADMIN_EMAIL:}
+    password: ${TASKFLOW_ADMIN_PASSWORD:}
+    name: ${TASKFLOW_ADMIN_NAME:TaskFlow Administrator}

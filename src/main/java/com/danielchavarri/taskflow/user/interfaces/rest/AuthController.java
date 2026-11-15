@@ -17,50 +17,51 @@ import com.danielchavarri.taskflow.shared.infrastructure.security.JwtService;
 @RequestMapping("/api/auth")
 public class AuthController {
 
-    private final RegisterUserService registerUserService;
-    private final LoginUserService loginUserService;
-    private final JwtService jwtService;
+        private final RegisterUserService registerUserService;
+        private final LoginUserService loginUserService;
+        private final JwtService jwtService;
 
-    public AuthController(
-            RegisterUserService registerUserService,
-            LoginUserService loginUserService, JwtService jwtService) {
-        this.registerUserService = registerUserService;
-        this.loginUserService = loginUserService;
-        this.jwtService = jwtService;
-    }
+        public AuthController(
+                        RegisterUserService registerUserService,
+                        LoginUserService loginUserService, JwtService jwtService) {
+                this.registerUserService = registerUserService;
+                this.loginUserService = loginUserService;
+                this.jwtService = jwtService;
+        }
 
-    @PostMapping("/register")
-    @ResponseStatus(HttpStatus.CREATED)
-    public UserResponse register(
-            @Valid @RequestBody RegisterUserRequest request) {
+        @PostMapping("/register")
+        @ResponseStatus(HttpStatus.CREATED)
+        public UserResponse register(
+                        @Valid @RequestBody RegisterUserRequest request) {
 
-        User user = registerUserService.execute(
-                request.name(),
-                request.email(),
-                request.password());
+                User user = registerUserService.execute(
+                                request.name(),
+                                request.email(),
+                                request.password());
 
-        return UserResponse.from(user);
-    }
+                return UserResponse.from(user);
+        }
 
-    @PostMapping("/login")
-    public LoginResponse login(
-            @Valid @RequestBody LoginRequest request) {
+        @PostMapping("/login")
+        public LoginResponse login(
+                        @Valid @RequestBody LoginRequest request) {
 
-        User user = loginUserService.execute(
-                request.email(),
-                request.password());
+                User user = loginUserService.execute(
+                                request.email(),
+                                request.password());
 
-        String token = jwtService.generateToken(
-                user.getId(),
-                user.getEmail());
+                String token = jwtService.generateToken(
+                                user.getId(),
+                                user.getEmail());
 
-        return new LoginResponse(
-                user.getId(),
-                user.getName(),
-                user.getEmail(),
-                user.getCreatedAt(),
-                token,
-                "Bearer",
-                jwtService.getExpirationMs());
-    }
+                return new LoginResponse(
+                                user.getId(),
+                                user.getName(),
+                                user.getEmail(),
+                                user.getCreatedAt(),
+                                user.getRole(),
+                                token,
+                                "Bearer",
+                                jwtService.getExpirationMs());
+        }
 }

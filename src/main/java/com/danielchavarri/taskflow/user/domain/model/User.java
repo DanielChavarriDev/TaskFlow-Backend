@@ -2,6 +2,7 @@
 package com.danielchavarri.taskflow.user.domain.model;
 
 import java.time.Instant;
+import java.util.Objects;
 import java.util.UUID;
 
 public class User {
@@ -10,6 +11,7 @@ public class User {
     private final String name;
     private final String email;
     private final String passwordHash;
+    private final UserRole role;
     private final Instant createdAt;
 
     private User(
@@ -17,23 +19,28 @@ public class User {
             String name,
             String email,
             String passwordHash,
+            UserRole role,
             Instant createdAt) {
-        this.id = id;
-        this.name = name;
-        this.email = email;
-        this.passwordHash = passwordHash;
-        this.createdAt = createdAt;
+
+        this.id = Objects.requireNonNull(id);
+        this.name = Objects.requireNonNull(name);
+        this.email = Objects.requireNonNull(email);
+        this.passwordHash = Objects.requireNonNull(passwordHash);
+        this.role = Objects.requireNonNull(role);
+        this.createdAt = Objects.requireNonNull(createdAt);
     }
 
     public static User create(
             String name,
             String email,
             String passwordHash) {
+
         return new User(
                 UUID.randomUUID(),
                 name,
                 email,
                 passwordHash,
+                UserRole.USER,
                 Instant.now());
     }
 
@@ -42,8 +49,16 @@ public class User {
             String name,
             String email,
             String passwordHash,
+            UserRole role,
             Instant createdAt) {
-        return new User(id, name, email, passwordHash, createdAt);
+
+        return new User(
+                id,
+                name,
+                email,
+                passwordHash,
+                role,
+                createdAt);
     }
 
     public UUID getId() {
@@ -60,6 +75,10 @@ public class User {
 
     public String getPasswordHash() {
         return passwordHash;
+    }
+
+    public UserRole getRole() {
+        return role;
     }
 
     public Instant getCreatedAt() {
