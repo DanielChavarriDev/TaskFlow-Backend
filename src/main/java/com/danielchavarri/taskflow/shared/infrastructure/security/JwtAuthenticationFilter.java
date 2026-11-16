@@ -58,13 +58,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             User user = userRepository.findById(userId)
                     .orElse(null);
 
-            if (user == null) {
+            if (!user.isActive()) {
                 SecurityContextHolder.clearContext();
 
                 authenticationEntryPoint.commence(
                         request,
                         response,
-                        new BadCredentialsException("User not found"));
+                        new BadCredentialsException("User account is inactive"));
 
                 return;
             }

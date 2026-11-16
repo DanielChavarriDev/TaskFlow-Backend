@@ -1,6 +1,7 @@
 
 package com.danielchavarri.taskflow.user.infrastructure.persistence;
 
+import com.danielchavarri.taskflow.user.domain.model.UserRole;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
@@ -14,4 +15,6 @@ public interface SpringDataUserRepository
     boolean existsByEmail(String email);
 
     Optional<UserJpaEntity> findById(UUID id);
+
+    long countByRoleAndActiveTrue(UserRole role);
 }

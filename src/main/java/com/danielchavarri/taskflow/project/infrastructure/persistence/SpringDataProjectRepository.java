@@ -2,6 +2,8 @@
 package com.danielchavarri.taskflow.project.infrastructure.persistence;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -17,4 +19,12 @@ public interface SpringDataProjectRepository
         List<ProjectJpaEntity> findAllByOwnerId(UUID ownerId);
 
         void deleteByIdAndOwnerId(UUID id, UUID ownerId);
+
+        @Query("""
+                        SELECT p.ownerId
+                        FROM ProjectJpaEntity p
+                        WHERE p.id = :projectId
+                        """)
+        Optional<UUID> findOwnerIdByProjectId(
+                        @Param("projectId") UUID projectId);
 }

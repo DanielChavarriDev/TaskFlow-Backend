@@ -29,6 +29,10 @@ public class LoginUserService {
         User user = userRepository.findByEmail(normalizedEmail)
                 .orElseThrow(InvalidCredentialsException::new);
 
+        if (!user.isActive()) {
+            throw new InvalidCredentialsException();
+        }
+
         if (!passwordEncoder.matches(password, user.getPasswordHash())) {
             throw new InvalidCredentialsException();
         }

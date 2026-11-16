@@ -54,4 +54,10 @@ public class ProjectRepositoryAdapter implements ProjectRepository {
     public void deleteByIdAndOwnerId(UUID id, UUID ownerId) {
         jpaRepository.deleteByIdAndOwnerId(id, ownerId);
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<UUID> findOwnerIdByProjectId(UUID projectId) {
+        return jpaRepository.findOwnerIdByProjectId(projectId);
+    }
 }

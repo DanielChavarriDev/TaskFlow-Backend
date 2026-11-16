@@ -2,9 +2,10 @@
 package com.danielchavarri.taskflow.user.domain.port;
 
 import com.danielchavarri.taskflow.user.domain.model.User;
+import com.danielchavarri.taskflow.user.domain.model.UserRole;
 
+import java.util.List;
 import java.util.Optional;
-
 import java.util.UUID;
 
 public interface UserRepository {
@@ -16,4 +17,8 @@ public interface UserRepository {
     boolean existsByEmail(String email);
 
     Optional<User> findById(UUID id);
+
+    List<User> findAll();
+
+    long countActiveByRole(UserRole role);
 }

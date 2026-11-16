@@ -13,6 +13,7 @@ public class User {
     private final String passwordHash;
     private final UserRole role;
     private final Instant createdAt;
+    private final boolean active;
 
     private User(
             UUID id,
@@ -20,7 +21,8 @@ public class User {
             String email,
             String passwordHash,
             UserRole role,
-            Instant createdAt) {
+            Instant createdAt,
+            boolean active) {
 
         this.id = Objects.requireNonNull(id);
         this.name = Objects.requireNonNull(name);
@@ -28,6 +30,7 @@ public class User {
         this.passwordHash = Objects.requireNonNull(passwordHash);
         this.role = Objects.requireNonNull(role);
         this.createdAt = Objects.requireNonNull(createdAt);
+        this.active = active;
     }
 
     public static User create(
@@ -41,9 +44,11 @@ public class User {
                 email,
                 passwordHash,
                 UserRole.USER,
-                Instant.now());
+                Instant.now(),
+                true);
     }
 
+    // Mantiene compatibilidad con las llamadas anteriores.
     public static User reconstitute(
             UUID id,
             String name,
@@ -52,13 +57,38 @@ public class User {
             UserRole role,
             Instant createdAt) {
 
+        return reconstitute(
+                id, name, email, passwordHash, role, createdAt, true);
+    }
+
+    public static User reconstitute(
+            UUID id,
+            String name,
+            String email,
+            String passwordHash,
+            UserRole role,
+            Instant createdAt,
+            boolean active) {
+
         return new User(
                 id,
                 name,
                 email,
                 passwordHash,
                 role,
-                createdAt);
+                createdAt,
+                active);
+    }
+
+    public User changeActiveStatus(boolean active) {
+        return reconstitute(
+                id,
+                name,
+                email,
+                passwordHash,
+                role,
+                createdAt,
+                active);
     }
 
     public UUID getId() {
@@ -83,5 +113,9 @@ public class User {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public boolean isActive() {
+        return active;
     }
 }

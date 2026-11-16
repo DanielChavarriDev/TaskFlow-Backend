@@ -130,7 +130,7 @@ class TaskStatusAuditPersistenceIntegrationTest {
 
         String reason = "  Se verificó el cumplimiento de los criterios.  ";
 
-        // Ejecutar el servicio real, sin simular el repositorio de auditoría.
+        // Ejecuta el servicio real, sin simular el repositorio de auditoría.
         var approvedTask = approveTaskCompletionService.execute(
                 taskId,
                 adminUserId,
@@ -138,7 +138,7 @@ class TaskStatusAuditPersistenceIntegrationTest {
 
         assertEquals(TaskStatus.COMPLETED, approvedTask.getStatus());
 
-        // Comprobar el estado persistido en PostgreSQL.
+        // Comprueba el estado persistido en PostgreSQL.
         String persistedStatus = jdbcTemplate.queryForObject(
                 "SELECT status FROM tasks WHERE id = ?",
                 String.class,
@@ -146,7 +146,7 @@ class TaskStatusAuditPersistenceIntegrationTest {
 
         assertEquals("COMPLETED", persistedStatus);
 
-        // Consultar directamente el registro de auditoría en PostgreSQL.
+        // Consulta directamente el registro de auditoría en PostgreSQL.
         var auditRow = jdbcTemplate.queryForMap("""
                 SELECT
                     id,
@@ -171,7 +171,7 @@ class TaskStatusAuditPersistenceIntegrationTest {
         assertNotNull(auditRow.get("id"));
         assertNotNull(auditRow.get("created_at"));
 
-        // Consultar mediante el servicio real y el adaptador JPA.
+        // Consulta mediante el servicio real y el adaptador JPA.
         List<TaskStatusAudit> audits = getTaskStatusAuditService.execute(taskId);
 
         assertEquals(1, audits.size());
@@ -187,7 +187,7 @@ class TaskStatusAuditPersistenceIntegrationTest {
                 audit.reason());
         assertNotNull(audit.createdAt());
 
-        // Comprobar la conversión al formato de respuesta REST.
+        // Comprueba la conversión al formato de respuesta REST.
         TaskStatusAuditResponse response = TaskStatusAuditResponse.from(audit);
 
         assertEquals(taskId, response.taskId());
@@ -206,7 +206,7 @@ class TaskStatusAuditPersistenceIntegrationTest {
 
         String reason = "  La evidencia presentada es insuficiente.  ";
 
-        // Ejecutar el servicio real de rechazo.
+        // Ejecuta el servicio real de rechazo.
         var rejectedTask = rejectTaskCompletionService.execute(
                 taskId,
                 adminUserId,
@@ -214,7 +214,7 @@ class TaskStatusAuditPersistenceIntegrationTest {
 
         assertEquals(TaskStatus.IN_PROGRESS, rejectedTask.getStatus());
 
-        // Comprobar el estado persistido en PostgreSQL.
+        // Comprueba el estado persistido en PostgreSQL.
         String persistedStatus = jdbcTemplate.queryForObject(
                 "SELECT status FROM tasks WHERE id = ?",
                 String.class,
@@ -222,7 +222,7 @@ class TaskStatusAuditPersistenceIntegrationTest {
 
         assertEquals("IN_PROGRESS", persistedStatus);
 
-        // Comprobar la auditoría persistida.
+        // Comprueba la auditoría persistida.
         var auditRow = jdbcTemplate.queryForMap("""
                 SELECT
                     id,
@@ -248,7 +248,7 @@ class TaskStatusAuditPersistenceIntegrationTest {
         assertNotNull(auditRow.get("id"));
         assertNotNull(auditRow.get("created_at"));
 
-        // Recuperar la auditoría mediante el servicio real.
+        // Recupera la auditoría mediante el servicio real.
         List<TaskStatusAudit> audits = getTaskStatusAuditService.execute(taskId);
 
         assertEquals(1, audits.size());
@@ -263,7 +263,7 @@ class TaskStatusAuditPersistenceIntegrationTest {
                 "La evidencia presentada es insuficiente.",
                 audit.reason());
 
-        // Comprobar la conversión a la respuesta REST.
+        // Comprueba la conversión a la respuesta REST.
         TaskStatusAuditResponse response = TaskStatusAuditResponse.from(audit);
 
         assertEquals(taskId, response.taskId());
@@ -287,7 +287,7 @@ class TaskStatusAuditPersistenceIntegrationTest {
         UUID olderAuditId = UUID.randomUUID();
         UUID newerAuditId = UUID.randomUUID();
 
-        // Insertar una auditoría antigua.
+        // Inserta una auditoría antigua.
         jdbcTemplate.update("""
                 INSERT INTO task_status_audit (
                     id,
@@ -308,7 +308,7 @@ class TaskStatusAuditPersistenceIntegrationTest {
                 "Primera intervención administrativa.",
                 Timestamp.from(olderDate));
 
-        // Insertar una auditoría más reciente.
+        // Inserta una auditoría más reciente.
         jdbcTemplate.update("""
                 INSERT INTO task_status_audit (
                     id,
@@ -329,12 +329,12 @@ class TaskStatusAuditPersistenceIntegrationTest {
                 "Segunda intervención administrativa.",
                 Timestamp.from(newerDate));
 
-        // Consultar mediante el servicio y repositorio reales.
+        // Consulta mediante el servicio y repositorio reales.
         List<TaskStatusAudit> audits = getTaskStatusAuditService.execute(taskId);
 
         assertEquals(2, audits.size());
 
-        // Verificar que el registro más reciente aparezca primero.
+        // Verifica que el registro más reciente aparezca primero.
         assertEquals(newerAuditId, audits.get(0).id());
         assertEquals(olderAuditId, audits.get(1).id());
 

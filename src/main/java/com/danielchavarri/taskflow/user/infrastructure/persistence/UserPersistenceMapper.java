@@ -15,7 +15,8 @@ public final class UserPersistenceMapper {
                 user.getEmail(),
                 user.getPasswordHash(),
                 user.getRole(),
-                user.getCreatedAt());
+                user.getCreatedAt(),
+                user.isActive());
     }
 
     public static User toDomain(UserJpaEntity entity) {
@@ -25,6 +26,7 @@ public final class UserPersistenceMapper {
                 entity.getEmail(),
                 entity.getPasswordHash(),
                 entity.getRole(),
-                entity.getCreatedAt());
+                entity.getCreatedAt(),
+                entity.isActive());
     }
 }

@@ -2,12 +2,7 @@
 package com.danielchavarri.taskflow.user.infrastructure.persistence;
 
 import com.danielchavarri.taskflow.user.domain.model.UserRole;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -35,6 +30,9 @@ public class UserJpaEntity {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
+    @Column(nullable = false)
+    private boolean active;
+
     protected UserJpaEntity() {
     }
 
@@ -44,7 +42,8 @@ public class UserJpaEntity {
             String email,
             String passwordHash,
             UserRole role,
-            Instant createdAt) {
+            Instant createdAt,
+            boolean active) {
 
         this.id = id;
         this.name = name;
@@ -52,6 +51,7 @@ public class UserJpaEntity {
         this.passwordHash = passwordHash;
         this.role = role;
         this.createdAt = createdAt;
+        this.active = active;
     }
 
     public UUID getId() {
@@ -76,5 +76,9 @@ public class UserJpaEntity {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public boolean isActive() {
+        return active;
     }
 }

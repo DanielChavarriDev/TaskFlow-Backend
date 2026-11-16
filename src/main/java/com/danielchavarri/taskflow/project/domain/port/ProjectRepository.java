@@ -16,4 +16,6 @@ public interface ProjectRepository {
     List<Project> findAllByOwnerId(UUID ownerId);
 
     void deleteByIdAndOwnerId(UUID id, UUID ownerId);
+
+    Optional<UUID> findOwnerIdByProjectId(UUID projectId);
 }

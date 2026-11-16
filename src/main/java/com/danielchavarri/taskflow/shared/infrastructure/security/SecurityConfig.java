@@ -150,6 +150,8 @@ public class SecurityConfig {
                                                                 "/api/tasks/admin/pending-review")
                                                 .hasRole("ADMIN")
 
+                                                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+
                                                 // 7. Cualquier otra operación requiere autenticación.
                                                 .anyRequest().authenticated())
 
